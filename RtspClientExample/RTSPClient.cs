@@ -699,7 +699,7 @@ namespace RtspClientExample
 
             // For old sony cameras, we need to use the control uri from the sdp
             var customControlUri = sdp_data.Attributs.FirstOrDefault(x => x.Key == "control");
-            if (customControlUri is not null)
+            if (customControlUri is not null && !string.Equals(customControlUri.Value, "*"))
             {
                 _uri = new Uri(_uri!, customControlUri.Value);
             }
