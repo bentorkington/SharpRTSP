@@ -124,5 +124,31 @@ namespace Rtsp.Sdp.Tests
                 () => SdpFile.Read(testReader, true),
                 Throws.InstanceOf<InvalidDataException>());
         }
+
+        [Test]
+        public void Read5()
+        {
+            using var sdpFile = selfAssembly.GetManifestResourceStream("RTSP.Tests.Sdp.Data.test5.sdp");
+            using var testReader = new StreamReader(sdpFile);
+            SdpFile sdp = SdpFile.Read(testReader, true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sdp.Version, Is.EqualTo(0));
+                Assert.That(sdp.Session, Is.EqualTo("Session99"));
+                Assert.That(sdp.Origin.Username, Is.EqualTo("-"));
+                Assert.That(sdp.Origin.SessionId, Is.EqualTo("98969043"));
+                Assert.That(sdp.Origin.SessionVersion, Is.EqualTo("98969053"));
+                Assert.That(sdp.Origin.NetType, Is.EqualTo("IN"));
+                Assert.That(sdp.Origin.AddressType, Is.EqualTo("IP4"));
+                Assert.That(sdp.Origin.UnicastAddress, Is.EqualTo("172.30.139.205"));
+                Assert.That(sdp.Attributs, Has.Count.EqualTo(0));
+                Assert.That(sdp.Medias, Has.Count.EqualTo(1));
+                Assert.That(sdp.Medias[0].Attributs, Has.Count.EqualTo(5));
+                Assert.That(sdp.Medias[0].Connections, Has.Count.EqualTo(1));
+                Assert.That(sdp.Medias[0].Connections[0].Host, Is.EqualTo("0.0.0.0"));
+            });
+
+        }
     }
 }
