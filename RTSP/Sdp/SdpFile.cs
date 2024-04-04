@@ -29,11 +29,29 @@ namespace Rtsp.Sdp
         /// As define in RFC 4566
         /// </summary>
         /// <param name="sdpStream">The SDP stream.</param>
-        /// <param name="strictParsing">if set to <c>false</c> accept some error seen with camera.</param>
+        /// <param name="strictParsing">if set to <see langword="false"/> accept some error seen with camera.</param>
         /// <returns>Parsed SDP file</returns>
+        [Obsolete("Use ReadStrict(TextReader) or ReadLoose(TextReader) instead")]
+        public static SdpFile Read(TextReader sdpStream, bool strictParsing = false)
+        {
+            if (strictParsing)
+            {
+                return ReadStrict(sdpStream);
+            }
+
+            return ReadLoose(sdpStream);
+        }
+
+        /// <summary>
+        /// Reads the specified SDP stream.
+        /// Respect the RFC 4566, may not work with old camera.
+        /// </summary>
+        /// <param name="sdpStream">Sdp stream text</param>
+        /// <returns>Parsed SDP file</returns>
+        /// <exception cref="InvalidDataException">Throw if encouter invalid data</exception>
 // Hard to make shorter
 #pragma warning disable MA0051 // Method is too long
-        public static SdpFile Read(TextReader sdpStream, bool strictParsing = false)
+        public static SdpFile ReadStrict(TextReader sdpStream)
 #pragma warning restore MA0051 // Method is too long
         {
             SdpFile returnValue = new();
@@ -70,10 +88,7 @@ namespace Rtsp.Sdp
             }
             else
             {
-                // However the MuxLab HDMI Encoder (TX-500762) Firmware 1.0.6
-                // does not include the 'Session' so supress InvalidDatarException
-                if (strictParsing)
-                    throw new InvalidDataException("session missing");
+                throw new InvalidDataException("session missing");
             }
 
             // Session Information optional
@@ -92,9 +107,7 @@ namespace Rtsp.Sdp
                 }
                 catch (UriFormatException err)
                 {
-                    /* skip if cannot parse, some cams returns empty or invalid values for optional ones */
-                    if (strictParsing)
-                        throw new InvalidDataException($"uri value invalid {value.Value}", err);
+                    throw new InvalidDataException($"uri value invalid {value.Value}", err);
                 }
                 value = GetKeyValue(sdpStream);
             }
@@ -131,14 +144,13 @@ namespace Rtsp.Sdp
             while (value.Key == 't')
             {
                 string timing = value.Value;
-                string repeat = string.Empty;
                 value = GetKeyValue(sdpStream);
                 if (value.Key == 'r')
                 {
-                    repeat = value.Value;
+                    // TODO parse repeat
                     value = GetKeyValue(sdpStream);
                 }
-                returnValue.Timings.Add(Timing.Parse(timing, repeat));
+                returnValue.Timings.Add(Timing.Parse(timing));
             }
 
             // timezone optional
@@ -162,22 +174,9 @@ namespace Rtsp.Sdp
                 value = GetKeyValue(sdpStream);
             }
 
-            // Hack for MuxLab HDMI Encoder (TX-500762) Firmware 1.0.6
-            // Skip over all other Key/Value pairs until the 'm=' key
-            while (value.Key != 'm' && value.Key != '\0')
+            if (value.Key != 'm' && value.Key != '\0')
             {
-                if (strictParsing)
-                    throw new InvalidDataException("Unexpected key/value pair");
-
-                value = GetKeyValue(sdpStream);
-
-                // For old sony SNC-CS20 we need to collect all attributes
-                //Attribute optional multiple
-                while (value.Key == 'a')
-                {
-                    returnValue.Attributs.Add(Attribut.ParseInvariant(value.Value));
-                    value = GetKeyValue(sdpStream);
-                }
+                throw new InvalidDataException("Unexpected key/value pair");
             }
 
             // Media
@@ -232,7 +231,86 @@ namespace Rtsp.Sdp
             return returnValue;
         }
 
-        public int Version { get; set; }
+        /// <summary>
+        /// Reads the specified SDP stream.
+        /// </summary>
+        /// <remarks>
+        /// In CCTV context, a lot of camera do not respect the RFC 4566.
+        /// Read without checking the content, some attribute may be empty after read.
+        /// </remarks>
+        /// <param name="sdpStream">Sdp stream text</param>
+        /// <returns></returns>
+        public static SdpFile ReadLoose(TextReader sdpStream)
+        {
+            SdpFile returnValue = new();
+            KeyValuePair<char, string> value;
+
+            while ((value = GetKeyValue(sdpStream)).Key != '\0')
+            {
+                switch (value.Key)
+                {
+                    case 'v':
+                        returnValue.Version = int.Parse(value.Value, CultureInfo.InvariantCulture);
+                        break;
+                    case 'o':
+                        returnValue.Origin = Origin.Parse(value.Value);
+                        break;
+                    case 's':
+                        returnValue.Session = value.Value;
+                        break;
+                    case 'i':
+                        returnValue.SessionInformation = value.Value;
+                        break;
+                    case 'u':
+                        try
+                        {
+                            returnValue.Url = new Uri(value.Value);
+                        }
+                        catch (UriFormatException)
+                        {
+                            // ignore invalid uri, happen with some camera
+                        }
+                        break;
+                    case 'e':
+                        returnValue.Email = value.Value;
+                        break;
+                    case 'p':
+                        returnValue.Phone = value.Value;
+                        break;
+                    case 'c':
+                        returnValue.Connection = Connection.Parse(value.Value);
+                        break;
+                    case 'b':
+                        returnValue.Bandwidth = Bandwidth.Parse(value.Value);
+                        break;
+                    case 't':
+                        returnValue.Timings.Add(Timing.Parse(value.Value));
+                        break;
+                    case 'r':
+                        // TODO parse repeat
+                        break;
+                    case 'z':
+                        returnValue.TimeZone = SdpTimeZone.ParseInvariant(value.Value);
+                        break;
+                    case 'a':
+                        returnValue.Attributs.Add(Attribut.ParseInvariant(value.Value));
+                        break;
+                    case 'm':
+                        while (value.Key == 'm')
+                        {
+                            Media newMedia = ReadMedia(sdpStream, ref value);
+                            returnValue.Medias.Add(newMedia);
+                        }
+                        break;
+                }
+            }
+
+            return returnValue;
+        }
+
+        public const int VERSION_NOT_SET = -1;
+
+        public int Version { get; set; } = VERSION_NOT_SET;
 
         public Origin? Origin { get; set; }
 

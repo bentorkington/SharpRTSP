@@ -8,7 +8,7 @@ namespace Rtsp.Sdp
         public required long StartTime { get; init; }
         public required long StopTime { get; init; }
 
-        internal static Timing Parse(string timing, string _)
+        internal static Timing Parse(string timing)
         {
             var parts = timing.Split(' ');
             if (parts.Length != 2)
@@ -25,7 +25,6 @@ namespace Rtsp.Sdp
                 throw new ArgumentException("Invalid timing format, stop time is not a number", nameof(timing));
             }
 
-            // TODO: Parse repeat
             return new()
             {
                 StartTime = start,
