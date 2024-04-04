@@ -10,7 +10,7 @@
 
     public class TCPtoUDPForwader : Forwarder
     {
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         private Thread _forwardCThread;
 
@@ -25,7 +25,7 @@
         /// Gets or sets the forward command port.
         /// </summary>
         /// <value>The forward command.</value>
-        public Rtsp.RtspListener ForwardCommand { get; set; }
+        public RtspListener ForwardCommand { get; set; }
         /// <summary>
         /// Gets or sets the source interleaved video.
         /// </summary>
@@ -46,7 +46,7 @@
             _logger.Debug("Forward from TCP channel:{0} => {1}:{2}", SourceInterleavedVideo, ForwardHostVideo, ForwardPortVideo);
             ForwardVUdpPort.Connect(ForwardHostVideo, ForwardPortVideo);
 
-            ForwardCommand.DataReceived += this.HandleDataReceive;
+            ForwardCommand.DataReceived += HandleDataReceive;
 
             if (ForwardInterleavedCommand >= 0)
             {
@@ -60,13 +60,13 @@
         /// </summary>
         public override void Stop()
         {
-            if (this.ToMulticast && ForwardInterleavedCommand >= 0)
+            if (ToMulticast && ForwardInterleavedCommand >= 0)
             {
-                IPAddress multicastAdress = IPAddress.Parse(this.ForwardHostVideo);
+                IPAddress multicastAdress = IPAddress.Parse(ForwardHostVideo);
                 ListenCUdpPort.DropMulticastGroup(multicastAdress);
             }
 
-            ForwardCommand.DataReceived -= this.HandleDataReceive;
+            ForwardCommand.DataReceived -= HandleDataReceive;
 
             ListenCUdpPort.Close();
             ForwardVUdpPort.Close();
@@ -77,12 +77,12 @@
         /// </summary>
         private void DoCommandJob()
         {
-            IPEndPoint udpEndPoint = new IPEndPoint(IPAddress.Any, ListenCommandPort);
-            if (this.ToMulticast)
+            IPEndPoint udpEndPoint = new(IPAddress.Any, ListenCommandPort);
+            if (ToMulticast)
             {
-                IPAddress multicastAdress = IPAddress.Parse(this.ForwardHostVideo);
+                IPAddress multicastAdress = IPAddress.Parse(ForwardHostVideo);
                 ListenCUdpPort.JoinMulticastGroup(multicastAdress);
-                _logger.Debug("Forward Command from multicast  {0}:{1} => TCP interleaved {2}", this.ForwardHostVideo, ListenCommandPort, ForwardInterleavedCommand);
+                _logger.Debug("Forward Command from multicast  {0}:{1} => TCP interleaved {2}", ForwardHostVideo, ListenCommandPort, ForwardInterleavedCommand);
 
             }
             else
@@ -137,16 +137,14 @@
         public void HandleDataReceive(object sender, RtspChunkEventArgs e)
         {
             if (e == null)
-                throw new ArgumentNullException("e");
+                throw new ArgumentNullException(nameof(e));
             Contract.EndContractBlock();
             try
             {
-
-                RtspData data = e.Message as RtspData;
-                if (data != null)
+                if (e.Message is RtspData data)
                 {
                     ReadOnlyMemory<byte> frame = data.Data;
-                    if (data.Channel == this.SourceInterleavedVideo)
+                    if (data.Channel == SourceInterleavedVideo)
                     {
                         ForwardVUdpPort.BeginSend(frame.ToArray(), frame.Length, new AsyncCallback(EndSendVideo), frame);
                     }

@@ -9,11 +9,11 @@
 
     public class UDPForwarder : Forwarder
     {
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
 
-        private UdpClient _listenVUdpPort;
-        private UdpClient _forwarCUdpPort;
+        private readonly UdpClient _listenVUdpPort;
+        private readonly UdpClient _forwarCUdpPort;
         private Thread _forwardVThread;
         private Thread _forwardCThread;
 
@@ -37,10 +37,8 @@
                 catch (SocketException)
                 {
                     _logger.Debug("Fail to allocate port, try again");
-                    if (_listenVUdpPort != null)
-                        _listenVUdpPort.Close();
-                    if (_forwarCUdpPort != null)
-                        _forwarCUdpPort.Close();
+                    _listenVUdpPort?.Close();
+                    _forwarCUdpPort?.Close();
                 }
             }
             _listenVUdpPort.Client.ReceiveBufferSize = 100 * 1024;
@@ -88,10 +86,9 @@
         /// </summary>
         public override void Stop()
         {
-            if (this.ToMulticast && ForwardPortCommand > 0)
+            if (ToMulticast && ForwardPortCommand > 0)
             {
-                IPAddress multicastAdress;
-                if (IPAddress.TryParse(this.ForwardHostVideo, out multicastAdress))
+                if (IPAddress.TryParse(ForwardHostVideo, out IPAddress multicastAdress))
                     ListenCUdpPort.DropMulticastGroup(multicastAdress);
             }
 
@@ -150,7 +147,7 @@
         {
 
             // TODO think if we must set ip address to something else than Any
-            IPEndPoint orginalIPEndPoint = new IPEndPoint(IPAddress.Any, SourcePortVideo);
+            IPEndPoint orginalIPEndPoint = new(IPAddress.Any, SourcePortVideo);
             _logger.Debug("Forward from {0} => {1}:{2}", ListenVideoPort, ForwardHostVideo, ForwardPortVideo);
             ForwardVUdpPort.Connect(ForwardHostVideo, ForwardPortVideo);
             byte[] frame;
@@ -200,14 +197,14 @@
         /// </summary>
         private void DoCommandJob()
         {
-            IPEndPoint originalUdpEndPoint = new IPEndPoint(IPAddress.Any, ListenCommandPort);
+            IPEndPoint originalUdpEndPoint = new(IPAddress.Any, ListenCommandPort);
 
             _forwarCUdpPort.Connect(ForwardHostCommand, ForwardPortCommand);
-            if (this.ToMulticast)
+            if (ToMulticast)
             {
-                IPAddress multicastAdress = IPAddress.Parse(this.ForwardHostVideo);
+                IPAddress multicastAdress = IPAddress.Parse(ForwardHostVideo);
                 ListenCUdpPort.JoinMulticastGroup(multicastAdress);
-                _logger.Debug("Forward Command from multicast  {0}:{1} => {2}:{3}", this.ForwardHostVideo, ListenCommandPort, ForwardHostCommand, ForwardPortCommand);
+                _logger.Debug("Forward Command from multicast  {0}:{1} => {2}:{3}", ForwardHostVideo, ListenCommandPort, ForwardHostCommand, ForwardPortCommand);
 
             }
             else

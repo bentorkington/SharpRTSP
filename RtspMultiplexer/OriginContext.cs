@@ -7,10 +7,6 @@ namespace RtspMulticaster
     /// </summary>
     internal class OriginContext
     {
-        public OriginContext()
-        {
-        }
-
         public int OriginCSeq { get; internal set; }
         public RtspListener OriginSourcePort { get; internal set; }
     }

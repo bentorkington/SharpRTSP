@@ -1,27 +1,18 @@
-﻿namespace RtspMulticaster
+﻿
+using RtspMulticaster;
+using System;
+
+NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+
+_logger.Info("Starting");
+RtspServer monServeur = new(8554);
+
+monServeur.StartListen();
+RTSPDispatcher.Instance.StartQueue();
+
+while (Console.ReadLine() != "q")
 {
-    using System;
-
-    class Program
-    {
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
-
-        static void Main(string[] args)
-        {
-            _logger.Info("Starting");
-            RtspServer monServeur = new RtspServer(8554);
-
-            monServeur.StartListen();
-            RTSPDispatcher.Instance.StartQueue();
-
-            while (Console.ReadLine() != "q")
-            {
-            }
-
-            monServeur.StopListen();
-            RTSPDispatcher.Instance.StopQueue();
-
-
-        }
-    }
 }
+
+monServeur.StopListen();
+RTSPDispatcher.Instance.StopQueue();

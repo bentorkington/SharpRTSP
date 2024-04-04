@@ -10,10 +10,10 @@
     public class RtspServer : IDisposable
     {
 
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
 
-        private TcpListener _RTSPServerListener;
+        private readonly TcpListener _RTSPServerListener;
         private ManualResetEvent _Stopping;
         private Thread _ListenTread;
 
@@ -24,8 +24,8 @@
         /// <param name="aPortNumber">A numero port.</param>
         public RtspServer(int portNumber)
         {
-            if (portNumber < System.Net.IPEndPoint.MinPort || portNumber > System.Net.IPEndPoint.MaxPort)
-                throw new ArgumentOutOfRangeException("aPortNumber", portNumber, "Port number must be between System.Net.IPEndPoint.MinPort and System.Net.IPEndPoint.MaxPort");
+            if (portNumber < IPEndPoint.MinPort || portNumber > IPEndPoint.MaxPort)
+                throw new ArgumentOutOfRangeException(nameof(portNumber), portNumber, "Port number must be between System.Net.IPEndPoint.MinPort and System.Net.IPEndPoint.MaxPort");
             Contract.EndContractBlock();
 
             RtspUtils.RegisterUri();
@@ -54,8 +54,7 @@
                 while (!_Stopping.WaitOne(0))
                 {
                     TcpClient oneClient = _RTSPServerListener.AcceptTcpClient();
-                    RtspListener newListener = new RtspListener(
-                        new RtspTcpTransport(oneClient));
+                    RtspListener newListener = new(new RtspTcpTransport(oneClient));
                     RTSPDispatcher.Instance.AddListener(newListener);
                     newListener.Start();
                 }

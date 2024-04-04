@@ -1,4 +1,5 @@
 ﻿using Rtsp.Messages;
+using RtspMultiplexer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -9,10 +10,11 @@ namespace RtspMulticaster
     public class RtspPushManager
     {
 
-        private Random sessionGenerator = new Random();
+        private readonly Random sessionGenerator = new();
 
-        private readonly Dictionary<string, RtspPushDescription> pushDescriptions = new Dictionary<string, RtspPushDescription>();
-        public Dictionary<string, RtspPushDescription> PushDescriptions { get { return pushDescriptions; } }
+        public Dictionary<string, RtspPushDescription> PushDescriptions { get; } = [];
+
+        private static readonly string[] separator = ["\r\n", "\n"];
 
         internal RtspResponse HandleOptions(RtspRequestOptions request)
         {
@@ -52,25 +54,20 @@ namespace RtspMulticaster
             return response;
         }
 
-        private IList<string> GetAllControlPath(string sdp, Uri basepath)
+        private static IList<string> GetAllControlPath(string sdp, Uri basepath)
         {
             var paths = new List<string>();
             // hugly , must be improved
             var basepathcompleted = new Uri(basepath.ToString() + "/");
-            foreach (var line in sdp.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+            foreach (var line in sdp.Split(separator, StringSplitOptions.RemoveEmptyEntries))
             {
                 if (line.StartsWith("a=control:"))
                 {
-
-
                     // TODO handle full url, etc...
                     var part = line.Remove(0, "a=control:".Length);
                     paths.Add(new Uri(basepathcompleted, part).AbsolutePath);
-
                 }
             }
-
-
             return paths;
         }
 
@@ -86,8 +83,7 @@ namespace RtspMulticaster
                 response.Session = sessionGenerator.Next().ToString();
             }
 
-            RtspPushDescription description;
-            if (!PushDescriptions.TryGetValue(request.RtspUri.AbsolutePath, out description))
+            if (!PushDescriptions.TryGetValue(request.RtspUri.AbsolutePath, out RtspPushDescription description))
             {
                 response.ReturnCode = 404;
                 return response;
@@ -121,16 +117,13 @@ namespace RtspMulticaster
 
 
             var response = request.CreateResponse();
-            RtspPushDescription description;
-            if (!PushDescriptions.TryGetValue(request.RtspUri.AbsolutePath, out description))
+            if (!PushDescriptions.TryGetValue(request.RtspUri.AbsolutePath, out RtspPushDescription description))
             {
                 response.ReturnCode = 404;
                 return response;
             }
 
             description.Start(request.Session);
-
-
 
             return response;
 
@@ -141,18 +134,14 @@ namespace RtspMulticaster
             Contract.Requires(request != null);
             Contract.Ensures(Contract.Result<RtspResponse>() != null);
 
-
             var response = request.CreateResponse();
-            RtspPushDescription description;
-            if (!PushDescriptions.TryGetValue(request.RtspUri.AbsolutePath, out description))
+            if (!PushDescriptions.TryGetValue(request.RtspUri.AbsolutePath, out RtspPushDescription description))
             {
                 response.ReturnCode = 404;
                 return response;
             }
 
             description.Stop(request.Session);
-
-
 
             return response;
         }
@@ -162,8 +151,7 @@ namespace RtspMulticaster
             var pushUri = GetPushUri(request.RtspUri.AbsolutePath);
             var response = request.CreateResponse();
 
-            RtspPushDescription description;
-            if (PushDescriptions.TryGetValue(pushUri, out description))
+            if (PushDescriptions.TryGetValue(pushUri, out RtspPushDescription description))
             {
                 byte[] sdp_bytes = Encoding.ASCII.GetBytes(description.Sdp);
 
@@ -178,7 +166,7 @@ namespace RtspMulticaster
             return response;
         }
 
-        private string GetPushUri(string absolutePath)
+        private static string GetPushUri(string absolutePath)
         {
             return absolutePath.Replace("/PULL/", "/PUSH/");
         }
@@ -194,14 +182,12 @@ namespace RtspMulticaster
 
             var pushUri = GetPushUri(request.RtspUri.AbsolutePath);
 
-            RtspPushDescription description;
-            if (PushDescriptions.TryGetValue(pushUri, out description))
+            if (PushDescriptions.TryGetValue(pushUri, out RtspPushDescription description))
             {
                 //TODO get port and multicast address from description.
                 var forwarder = description.GetForwarderFor(pushUri);
-                var transport = new RtspTransport();
 
-                RtspTransport newTransport = new RtspTransport()
+                RtspTransport newTransport = new()
                 {
                     IsMulticast = true,
                     Destination = forwarder.ForwardHostVideo,

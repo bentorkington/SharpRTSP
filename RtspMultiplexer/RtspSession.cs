@@ -8,7 +8,7 @@
 
     public class RtspSession
     {
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
 
         public RtspSession()
@@ -19,7 +19,7 @@
         public string Name { get; set; }
 
         private Thread _timeoutThread;
-        private AutoResetEvent _dataReceive = new AutoResetEvent(false);
+        private readonly AutoResetEvent _dataReceive = new(false);
         private bool _stoping = false;
 
         /// <summary>
@@ -53,27 +53,13 @@
             set;
         }
 
-
-        private Dictionary<Uri, Forwarder> _listOfForwarder = new Dictionary<Uri, Forwarder>();
-
-        public Dictionary<Uri, Forwarder> ListOfForwader
-        {
-            get { return _listOfForwarder; }
-        }
+        public Dictionary<Uri, Forwarder> ListOfForwader { get; } = [];
 
         public int Timeout { get; set; }
 
-        private List<string> _clientList = new List<string>();
+        private readonly List<string> _clientList = [];
 
-        public bool IsNeeded
-        {
-            get
-            {
-                if (_clientList.Count > 0)
-                    return true;
-                return false;
-            }
-        }
+        public bool IsNeeded => _clientList.Count > 0;
 
         public void Start(string clientAddress)
         {
@@ -88,12 +74,12 @@
                 return;
             }
 
-            foreach (var item in _listOfForwarder)
+            foreach (var item in ListOfForwader)
             {
                 item.Value.CommandReceive += new EventHandler(CommandReceive);
                 item.Value.Start();
             }
-            _timeoutThread = new System.Threading.Thread(new System.Threading.ThreadStart(this.TimeoutDetecter));
+            _timeoutThread = new Thread(new ThreadStart(TimeoutDetecter));
             _stoping = false;
             _timeoutThread.Start();
 
@@ -124,11 +110,13 @@
         {
             //TODO vérifier ce bout de code....
             // Je suis vraiement pas sur là.
-            foreach (var destinationUri in _listOfForwarder.Keys)
+            foreach (var destinationUri in ListOfForwader.Keys)
             {
-                RtspRequest tearDownMessage = new RtspRequest();
-                tearDownMessage.RequestTyped = RtspRequest.RequestType.TEARDOWN;
-                tearDownMessage.RtspUri = destinationUri;
+                RtspRequest tearDownMessage = new()
+                {
+                    RequestTyped = RtspRequest.RequestType.TEARDOWN,
+                    RtspUri = destinationUri
+                };
                 RTSPDispatcher.Instance.Enqueue(tearDownMessage);
             }
             Stop();
@@ -136,8 +124,7 @@
 
         internal void Stop(string clientAdress)
         {
-            if (_clientList.Contains(clientAdress))
-                _clientList.Remove(clientAdress);
+            _clientList.Remove(clientAdress);
 
             if (!IsNeeded)
                 Stop();
@@ -148,7 +135,7 @@
         {
             _logger.Info("Stopping session: {0} ", Name);
 
-            foreach (var item in _listOfForwarder)
+            foreach (var item in ListOfForwader)
             {
                 item.Value.CommandReceive -= new EventHandler(CommandReceive);
                 item.Value.Stop();
@@ -204,14 +191,14 @@
             Contract.Requires(uri != null);
 
             // Configruation change, remove the old forwarder
-            if (_listOfForwarder.ContainsKey(uri))
+            if (ListOfForwader.TryGetValue(uri, out Forwarder existingForwarder))
             {
-                _listOfForwarder[uri].Stop();
-                _listOfForwarder.Remove(uri);
+                existingForwarder.Stop();
+                ListOfForwader.Remove(uri);
             }
 
 
-            _listOfForwarder.Add(uri, forwarder);
+            ListOfForwader.Add(uri, forwarder);
         }
 
 

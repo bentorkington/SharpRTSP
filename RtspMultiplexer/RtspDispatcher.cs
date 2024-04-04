@@ -17,40 +17,29 @@
     /// </summary>
     public class RTSPDispatcher
     {
-        private RTSPDispatcher()
-        { }
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private readonly Dictionary<string, RtspListener> _serverListener = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentQueue<RtspMessage> _queue = new();
 
-        private static RTSPDispatcher _instance = new RTSPDispatcher();
-
-        private Dictionary<string, RtspListener> _serverListener = new Dictionary<string, RtspListener>(StringComparer.OrdinalIgnoreCase);
-        private ConcurrentQueue<RtspMessage> _queue = new ConcurrentQueue<RtspMessage>();
-
-        private Dictionary<string, UDPForwarder> _setupForwarder = new Dictionary<string, UDPForwarder>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, UDPForwarder> _setupForwarder = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// List of the active sessions
         /// </summary>
-        private Dictionary<string, RtspSession> _activesSession = new Dictionary<string, RtspSession>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, RtspSession> _activesSession = new(StringComparer.OrdinalIgnoreCase);
 
 
         private Thread _jobQueue;
-        private ManualResetEvent _stopping = new ManualResetEvent(false);
-        private AutoResetEvent _newMessage = new AutoResetEvent(false);
+        private readonly ManualResetEvent _stopping = new(false);
+        private readonly AutoResetEvent _newMessage = new(false);
 
-        private RtspPushManager pushManager = new RtspPushManager();
+        private readonly RtspPushManager pushManager = new();
 
         /// <summary>
         /// Gets the singleton instance.
         /// </summary>
         /// <value>The instance.</value>
-        public static RTSPDispatcher Instance
-        {
-            get
-            {
-                return _instance;
-            }
-        }
+        public static RTSPDispatcher Instance { get; } = new RTSPDispatcher();
 
         /// <summary>
         /// Enqueues the specified message.
@@ -104,9 +93,8 @@
             while (!_stopping.WaitOne(0))
             {
                 _newMessage.WaitOne();
-                RtspMessage message;
 
-                while (_queue.TryDequeue(out message))
+                while (_queue.TryDequeue(out RtspMessage message))
                 {
                     //try
                     //{
@@ -128,7 +116,7 @@
         public void AddListener(RtspListener listener)
         {
             if (listener == null)
-                throw new ArgumentNullException("listener");
+                throw new ArgumentNullException(nameof(listener));
             Contract.EndContractBlock();
 
             listener.MessageReceived += new EventHandler<RtspChunkEventArgs>(Listener_MessageReceived);
@@ -141,10 +129,10 @@
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RTSP.RTSPChunkEventArgs"/> instance containing the event data.</param>
-        private void Listener_MessageReceived(object sender, Rtsp.RtspChunkEventArgs e)
+        private void Listener_MessageReceived(object sender, RtspChunkEventArgs e)
         {
             Contract.Requires(e.Message != null);
-            this.Enqueue(e.Message as RtspMessage);
+            Enqueue(e.Message as RtspMessage);
         }
 
         /// <summary>
@@ -166,10 +154,11 @@
                 // HandleRequest can change message type.
                 if (message is RtspRequest)
                 {
-                    var context = new OriginContext();
-                    context.OriginCSeq = message.CSeq;
-                    context.OriginSourcePort = message.SourcePort;
-                    (message as RtspRequest).ContextData = context;
+                    (message as RtspRequest).ContextData = new OriginContext
+                    {
+                        OriginCSeq = message.CSeq,
+                        OriginSourcePort = message.SourcePort
+                    };
                 }
 
 
@@ -180,8 +169,7 @@
 
                 if (response.OriginalRequest != null)
                 {
-                    var context = response.OriginalRequest.ContextData as OriginContext;
-                    if (context != null)
+                    if (response.OriginalRequest.ContextData is OriginContext context)
                     {
                         destination = context.OriginSourcePort;
                         response.CSeq = context.OriginCSeq;
@@ -194,26 +182,21 @@
 
             }
 
-            if (destination != null)
+            if (destination != null && !destination.SendMessage(message))
             {
-                bool isGood = destination.SendMessage(message);
 
-                if (!isGood)
+                destination.Stop();
+                _serverListener.Remove(destination.RemoteAdress);
+
+                // send back a message because we can't forward.
+                if (message is RtspRequest && message.SourcePort != null)
                 {
+                    RtspRequest request = message as RtspRequest;
+                    RtspResponse theDirectResponse = request.CreateResponse();
+                    _logger.Warn("Error during forward : {0}. So sending back a direct error response", message.Command);
+                    theDirectResponse.ReturnCode = 500;
+                    request.SourcePort.SendMessage(theDirectResponse);
 
-                    destination.Stop();
-                    _serverListener.Remove(destination.RemoteAdress);
-
-                    // send back a message because we can't forward.
-                    if (message is RtspRequest && message.SourcePort != null)
-                    {
-                        RtspRequest request = message as RtspRequest;
-                        RtspResponse theDirectResponse = request.CreateResponse();
-                        _logger.Warn("Error during forward : {0}. So sending back a direct error response", message.Command);
-                        theDirectResponse.ReturnCode = 500;
-                        request.SourcePort.SendMessage(theDirectResponse);
-
-                    }
                 }
             }
         }
@@ -231,21 +214,16 @@
         {
             Contract.Requires(destinationUri != null);
 
-            RtspListener destination;
             string destinationName = destinationUri.Authority;
-            if (_serverListener.ContainsKey(destinationName))
-                destination = _serverListener[destinationName];
-            else
+            if (!_serverListener.TryGetValue(destinationName, out RtspListener destination))
             {
-                destination = new RtspListener(
-                    new RtspTcpTransport(destinationUri)
-                    );
+                destination = new(new RtspTcpTransport(destinationUri));
 
                 // un peu pourri mais pas d'autre idée...
                 // pour avoir vraiment des clef avec IP....
-                if (_serverListener.ContainsKey(destination.RemoteAdress))
+                if (_serverListener.TryGetValue(destination.RemoteAdress, out RtspListener value))
                 {
-                    destination = _serverListener[destination.RemoteAdress];
+                    destination = value;
                 }
                 else
                 {
@@ -274,7 +252,7 @@
 
             RtspListener destination;
             // Do not forward, direct respond because we do not know where to send.
-            if (request.RtspUri == null || request.RtspUri.AbsolutePath.Split(new char[] { '/' }, 3).Length < 3)
+            if (request.RtspUri == null || request.RtspUri.AbsolutePath.Split('/', 3).Length < 3)
             {
                 destination = HandleRequestWithoutUrl(ref message);
             }
@@ -295,15 +273,13 @@
                     destination = GetRtspListenerForDestination(request.RtspUri);
 
                     // Handle setup
-                    RtspRequestSetup requestSetup = request as RtspRequestSetup;
-                    if (requestSetup != null)
+                    if (request is RtspRequestSetup requestSetup)
                     {
                         message = HandleRequestSetup(ref destination, requestSetup);
                     }
 
                     //Handle Play Reques
-                    RtspRequestPlay requestPlay = request as RtspRequestPlay;
-                    if (requestPlay != null)
+                    if (request is RtspRequestPlay requestPlay)
                     {
                         message = HandleRequestPlay(ref destination, requestPlay);
                     }
@@ -314,10 +290,9 @@
                     if (request.Session != null && request.RtspUri != null)
                     {
                         string sessionKey = RtspSession.GetSessionName(request.RtspUri, request.Session);
-                        if (_activesSession.ContainsKey(sessionKey))
+                        if (_activesSession.TryGetValue(sessionKey, out RtspSession session))
                         {
-
-                            _activesSession[sessionKey].Handle(request);
+                            session.Handle(request);
                             switch (request.RequestTyped)
                             {
                                 // start here to start early
@@ -325,8 +300,8 @@
                                 // _activesSession[sessionKey].Start(request.SourcePort.RemoteAdress); 
                                 //   break;
                                 case RtspRequest.RequestType.TEARDOWN:
-                                    _activesSession[sessionKey].Stop(request.SourcePort.RemoteAdress);
-                                    if (!_activesSession[sessionKey].IsNeeded)
+                                    session.Stop(request.SourcePort.RemoteAdress);
+                                    if (!session.IsNeeded)
                                         _activesSession.Remove(sessionKey);
                                     else
                                     {
@@ -336,7 +311,6 @@
                                         message = request.CreateResponse();
                                     }
                                     break;
-
                             }
                         }
                         else
@@ -480,25 +454,26 @@
         {
             Contract.Requires(originalUri != null);
 
-            string[] pathPart = originalUri.AbsolutePath.Split(new char[] { '/' }, 3);
+            string[] pathPart = originalUri.AbsolutePath.Split('/', 3);
 
             if (pathPart.Length < 3)
-                throw new ArgumentException(String.Format(CultureInfo.InvariantCulture, "The url {0} do not contain forward part ", originalUri), "originalUri");
+                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "The url {0} do not contain forward part ", originalUri), nameof(originalUri));
 
             string destination = Uri.UnescapeDataString(pathPart[1]);
 
             string[] destinationPart = destination.Split(':');
-            int port;
             // if no usable port number set it to default
-            if (destinationPart.Length < 2 || !int.TryParse(destinationPart[1], out port))
+            if (destinationPart.Length < 2 || !int.TryParse(destinationPart[1], out int port))
             {
                 port = -1;
             }
 
-            UriBuilder url = new UriBuilder(originalUri);
-            url.Host = destinationPart[0];
-            url.Port = port;
-            url.Path = pathPart[2];
+            UriBuilder url = new(originalUri)
+            {
+                Host = destinationPart[0],
+                Port = port,
+                Path = pathPart[2]
+            };
 
             _logger.Debug("Rewrite Url {0} to {1}", originalUri, url);
             return url.Uri;
@@ -525,9 +500,9 @@
             // look if we already have a multicast streaming playing for this URI.
             foreach (var session in _activesSession.Values)
             {
-                if (session.State == RtspSession.SessionState.Playing && session.ListOfForwader.ContainsKey(requestSetup.RtspUri))
+                if (session.State == RtspSession.SessionState.Playing && session.ListOfForwader.TryGetValue(requestSetup.RtspUri, out Forwarder value))
                 {
-                    Forwarder existingForwarder = session.ListOfForwader[requestSetup.RtspUri];
+                    Forwarder existingForwarder = value;
                     if (existingForwarder != null && existingForwarder.ToMulticast)
                     {
                         RtspResponse returnValue = requestSetup.CreateResponse();
@@ -561,8 +536,10 @@
                 return returnValue;
             }
 
-            UDPForwarder forwarder = new UDPForwarder();
-            forwarder.ToMulticast = selectedTransport.IsMulticast;
+            UDPForwarder forwarder = new()
+            {
+                ToMulticast = selectedTransport.IsMulticast
+            };
 
             // this part of config is only valid in unicast.
             if (!selectedTransport.IsMulticast)
@@ -584,13 +561,13 @@
 
             // Configured the transport asked.
             forwarder.ForwardHostCommand = destination.RemoteAdress.Split(':')[0];
-            RtspTransport firstNewTransport = new RtspTransport()
+            RtspTransport firstNewTransport = new()
             {
                 IsMulticast = false,
                 ClientPort = new PortCouple(forwarder.ListenVideoPort, forwarder.FromForwardCommandPort),
             };
 
-            RtspTransport secondTransport = new RtspTransport()
+            RtspTransport secondTransport = new()
             {
                 IsMulticast = false,
                 LowerTransport = RtspTransport.LowerTransportType.TCP,
@@ -619,11 +596,8 @@
 
 
             string sessionKey = RtspSession.GetSessionName(requestPlay.RtspUri, requestPlay.Session);
-            if (_activesSession.ContainsKey(sessionKey))
+            if (_activesSession.TryGetValue(sessionKey, out RtspSession session))
             {
-
-                RtspSession session = _activesSession[sessionKey];
-
                 // si on est dèjà en play on n'envoie pas la commande a la source.
                 if (session.State == RtspSession.SessionState.Playing)
                 {
@@ -700,8 +674,7 @@
             if (message.Headers.ContainsKey(RtspHeaderNames.ContentBase))
                 message.Headers.Remove(RtspHeaderNames.ContentBase);
 
-            if (message.Headers.ContainsKey(RtspHeaderNames.ContentType) &&
-                message.Headers[RtspHeaderNames.ContentType] == "application/sdp")
+            if (message.Headers.TryGetValue(RtspHeaderNames.ContentType, out string contentType) && contentType == "application/sdp")
             {
                 RewriteSDPMessage(message);
             }
@@ -722,47 +695,42 @@
                 return;
 
             // voir a mettre dans la message....
-            string curentSession = message.Session != null ? message.Session : message.OriginalRequest.Session;
-
-
+            string curentSession = message.Session ?? message.OriginalRequest.Session;
 
             //Update session state and handle special message
             string sessionKey = RtspSession.GetSessionName(message.OriginalRequest.RtspUri, curentSession);
-            if (_activesSession.ContainsKey(sessionKey))
-            {
-                if (message.ReturnCode >= 300 && message.ReturnCode < 400)
-                    _activesSession[sessionKey].State = RtspSession.SessionState.Init;
-                else if (message.ReturnCode < 300)
-                {
-                    switch (message.OriginalRequest.RequestTyped)
-                    {
-                        case RtspRequest.RequestType.SETUP:
-                            if (_activesSession[sessionKey].State == RtspSession.SessionState.Init)
-                                _activesSession[sessionKey].State = RtspSession.SessionState.Ready;
-                            break;
-                        case RtspRequest.RequestType.PLAY:
-                            if (_activesSession[sessionKey].State == RtspSession.SessionState.Ready)
-                                _activesSession[sessionKey].State = RtspSession.SessionState.Playing;
-                            break;
-                        case RtspRequest.RequestType.RECORD:
-                            if (_activesSession[sessionKey].State == RtspSession.SessionState.Ready)
-                                _activesSession[sessionKey].State = RtspSession.SessionState.Recording;
-                            break;
-                        case RtspRequest.RequestType.PAUSE:
-                            if (_activesSession[sessionKey].State == RtspSession.SessionState.Playing ||
-                                _activesSession[sessionKey].State == RtspSession.SessionState.Recording)
-                                _activesSession[sessionKey].State = RtspSession.SessionState.Ready;
-                            break;
-                        case RtspRequest.RequestType.TEARDOWN:
-                            _activesSession[sessionKey].State = RtspSession.SessionState.Init;
-
-                            break;
-                    }
-                }
-            }
-            else
+            if (!_activesSession.TryGetValue(sessionKey, out RtspSession session))
             {
                 _logger.Warn("Command {0} for session {1} which was not found", message.OriginalRequest.RequestTyped, sessionKey);
+                return;
+            }
+            if (message.ReturnCode >= 300 && message.ReturnCode < 400)
+                session.State = RtspSession.SessionState.Init;
+            else if (message.ReturnCode < 300)
+            {
+                switch (message.OriginalRequest.RequestTyped)
+                {
+                    case RtspRequest.RequestType.SETUP:
+                        if (session.State == RtspSession.SessionState.Init)
+                            session.State = RtspSession.SessionState.Ready;
+                        break;
+                    case RtspRequest.RequestType.PLAY:
+                        if (session.State == RtspSession.SessionState.Ready)
+                            session.State = RtspSession.SessionState.Playing;
+                        break;
+                    case RtspRequest.RequestType.RECORD:
+                        if (session.State == RtspSession.SessionState.Ready)
+                            session.State = RtspSession.SessionState.Recording;
+                        break;
+                    case RtspRequest.RequestType.PAUSE:
+                        if (session.State == RtspSession.SessionState.Playing || session.State == RtspSession.SessionState.Recording)
+                            session.State = RtspSession.SessionState.Ready;
+                        break;
+                    case RtspRequest.RequestType.TEARDOWN:
+                        session.State = RtspSession.SessionState.Init;
+
+                        break;
+                }
             }
         }
 
@@ -779,20 +747,20 @@
             {
                 Forwarder forwarder = ConfigureTransportAndForwarder(message, _setupForwarder[setupKey]);
 
-                RtspSession newSession;
                 string sessionKey = RtspSession.GetSessionName(original.RtspUri, message.Session);
-                if (_activesSession.ContainsKey(sessionKey))
+                if (!_activesSession.TryGetValue(sessionKey, out RtspSession newSession))
                 {
-                    newSession = _activesSession[sessionKey];
-                    _logger.Info("There was an already a session with ths ID {0}", newSession.Name);
+                    _logger.Info("Create a new session with the ID {0}", sessionKey);
+                    newSession = new RtspSession
+                    {
+                        Name = message.Session,
+                        Destination = original.RtspUri.Authority
+                    };
+                    _activesSession.Add(sessionKey, newSession);
                 }
                 else
                 {
-                    _logger.Info("Create a new session with the ID {0}", sessionKey);
-                    newSession = new RtspSession();
-                    newSession.Name = message.Session;
-                    newSession.Destination = original.RtspUri.Authority;
-                    _activesSession.Add(sessionKey, newSession);
+                    _logger.Info("There was an already a session with ths ID {0}", newSession.Name);
                 }
 
                 newSession.AddForwarder(original.RtspUri, forwarder);
@@ -824,15 +792,17 @@
             }
             else
             {
-                TCPtoUDPForwader TCPForwarder = new TCPtoUDPForwader();
-                TCPForwarder.ForwardCommand = aMessage.SourcePort;
-                TCPForwarder.SourceInterleavedVideo = transport.Interleaved.First;
-                TCPForwarder.ForwardInterleavedCommand = transport.Interleaved.Second;
-                // we need to transfer already getted values
-                TCPForwarder.ForwardHostVideo = forwarder.ForwardHostVideo;
-                TCPForwarder.ForwardPortVideo = forwarder.ForwardPortVideo;
-                TCPForwarder.SourcePortCommand = forwarder.SourcePortCommand;
-                TCPForwarder.ToMulticast = forwarder.ToMulticast;
+                TCPtoUDPForwader TCPForwarder = new()
+                {
+                    ForwardCommand = aMessage.SourcePort,
+                    SourceInterleavedVideo = transport.Interleaved.First,
+                    ForwardInterleavedCommand = transport.Interleaved.Second,
+                    // we need to transfer already getted values
+                    ForwardHostVideo = forwarder.ForwardHostVideo,
+                    ForwardPortVideo = forwarder.ForwardPortVideo,
+                    SourcePortCommand = forwarder.SourcePortCommand,
+                    ToMulticast = forwarder.ToMulticast
+                };
 
                 resultForwarder = TCPForwarder;
             }
@@ -843,7 +813,7 @@
                 resultForwarder.ForwardHostVideo = CreateNextMulticastAddress();
                 resultForwarder.ForwardPortVideo = forwarder.FromForwardVideoPort;
 
-                RtspTransport newTransport = new RtspTransport()
+                RtspTransport newTransport = new()
                 {
                     IsMulticast = true,
                     Destination = resultForwarder.ForwardHostVideo,
@@ -858,7 +828,7 @@
             }
             else
             {
-                RtspTransport newTransport = new RtspTransport()
+                RtspTransport newTransport = new()
                 {
                     IsMulticast = false,
                     Destination = forwarder.ForwardHostVideo,
@@ -885,7 +855,7 @@
         private static string CreateNextMulticastAddress()
         {
             _multicastAddress++;
-            return String.Format(CultureInfo.InvariantCulture, "{0}.{1}.{2}.{3}",
+            return string.Format(CultureInfo.InvariantCulture, "{0}.{1}.{2}.{3}",
                 (_multicastAddress >> 24) & 0xFF,
                 (_multicastAddress >> 16) & 0xFF,
                 (_multicastAddress >> 8) & 0xFF,
@@ -904,9 +874,9 @@
 
             try
             {
-                if (aMessage.Headers.ContainsKey(RtspHeaderNames.ContentEncoding))
+                if (aMessage.Headers.TryGetValue(RtspHeaderNames.ContentEncoding, out string value))
                 {
-                    Encoding.GetEncoding(aMessage.Headers[RtspHeaderNames.ContentEncoding]);
+                    Encoding.GetEncoding(value);
                 }
             }
             catch (ArgumentException)
@@ -914,49 +884,42 @@
             }
 
             //fall back to UTF-8
-            if (sdpEncoding == null)
-                sdpEncoding = Encoding.UTF8;
+            sdpEncoding ??= Encoding.UTF8;
 
 
             string sdpFile = sdpEncoding.GetString(aMessage.Data.Span);
 
-            using (StringReader readsdp = new StringReader(sdpFile))
+            using StringReader readsdp = new(sdpFile);
+            StringBuilder newsdp = new();
+
+            string line = readsdp.ReadLine();
+            while (line != null)
             {
-                StringBuilder newsdp = new StringBuilder();
 
-                string line = readsdp.ReadLine();
-                while (line != null)
+                if (line.Contains("a=control:rtsp://"))
                 {
+                    string[] lineElement = line.Split(':', 2);
+                    UriBuilder temp = new(lineElement[1]);
+                    temp.Path = temp.Host + ":" + temp.Port.ToString(CultureInfo.InvariantCulture) + temp.Path;
 
-                    if (line.Contains("a=control:rtsp://"))
-                    {
-                        string[] lineElement = line.Split(new char[] { ':' }, 2);
-                        UriBuilder temp = new UriBuilder(lineElement[1]);
-                        temp.Path = temp.Host + ":" + temp.Port.ToString(CultureInfo.InvariantCulture) + temp.Path;
+                    string domainName = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName;
+                    string hostName = Dns.GetHostName();
+                    string fqdn  = !hostName.Contains(domainName) ? hostName + "." + domainName : hostName;
 
-                        string domainName = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().DomainName;
-                        string hostName = Dns.GetHostName();
-                        string fqdn = String.Empty;
-                        if (!hostName.Contains(domainName))
-                            fqdn = hostName + "." + domainName;
-                        else
-                            fqdn = hostName;
-
-                        temp.Host = fqdn;
-                        temp.Port = 8554;
-                        line = lineElement[0] + ":" + temp.ToString();
-                    }
-                    if (line.Contains("c=IN IP4 "))
-                    {
-                        line = string.Format(CultureInfo.InvariantCulture, "c=IN IP4 {0}", CreateNextMulticastAddress());
-                    }
-                    newsdp.Append(line);
-                    newsdp.Append("\r\n");
-                    line = readsdp.ReadLine();
+                    temp.Host = fqdn;
+                    temp.Port = 8554;
+                    line = lineElement[0] + ":" + temp.ToString();
                 }
-
-                aMessage.Data = sdpEncoding.GetBytes(newsdp.ToString());
+                if (line.Contains("c=IN IP4 "))
+                {
+                    line = string.Format(CultureInfo.InvariantCulture, "c=IN IP4 {0}", CreateNextMulticastAddress());
+                }
+                newsdp.Append(line);
+                newsdp.Append("\r\n");
+                line = readsdp.ReadLine();
             }
+
+            aMessage.Data = sdpEncoding.GetBytes(newsdp.ToString());
             aMessage.AdjustContentLength();
         }
 

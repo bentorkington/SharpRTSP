@@ -13,7 +13,7 @@
         /// <summary>
         /// Logger object
         /// </summary>
-        private static NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         /// <summary>
         /// First port number to use
@@ -43,13 +43,11 @@
         /// <summary>
         /// Forward UDP port (send data from this port)
         /// </summary>
-        protected UdpClient ForwardVUdpPort
-        { get; private set; }
+        protected UdpClient ForwardVUdpPort { get; private set; }
         /// <summary>
         /// Listen UDP port (receive data on this port)
         /// </summary>
-        protected UdpClient ListenCUdpPort
-        { get; private set; }
+        protected UdpClient ListenCUdpPort { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Forwarder"/> class.
@@ -72,11 +70,8 @@
                 {
                     _logger.Debug("Fail to allocate port, try again");
 
-                    if (ForwardVUdpPort != null)
-                        ForwardVUdpPort.Close();
-
-                    if (ListenCUdpPort != null)
-                        ListenCUdpPort.Close();
+                    ForwardVUdpPort?.Close();
+                    ListenCUdpPort?.Close();
                 }
             }
             // Not sure it is usefull
@@ -111,25 +106,13 @@
         /// Gets video port from which the system forward .
         /// </summary>
         /// <value>Video port.</value>
-        public int FromForwardVideoPort
-        {
-            get
-            {
-                return ((IPEndPoint)ForwardVUdpPort.Client.LocalEndPoint).Port;
-            }
-        }
+        public int FromForwardVideoPort => ((IPEndPoint)ForwardVUdpPort.Client.LocalEndPoint).Port;
 
         /// <summary>
         /// Gets the listen command port.
         /// </summary>
         /// <value>The listen command port.</value>
-        public int ListenCommandPort
-        {
-            get
-            {
-                return ((IPEndPoint)ListenCUdpPort.Client.LocalEndPoint).Port;
-            }
-        }
+        public int ListenCommandPort => ((IPEndPoint)ListenCUdpPort.Client.LocalEndPoint).Port;
 
         /// <summary>
         /// Starts this instance.
@@ -232,9 +215,7 @@
         /// <param name="e">The <see cref="System.EventArgs"/> instance containing the event data.</param>
         protected void OnCommandReceive(EventArgs e)
         {
-            EventHandler handler = CommandReceive;
-            if (handler != null)
-                handler(this, e);
+            CommandReceive?.Invoke(this, e);
         }
 
         /// <summary>
