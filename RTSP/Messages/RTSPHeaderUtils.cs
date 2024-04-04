@@ -11,7 +11,7 @@ namespace Rtsp.Messages
             {
                 return [];
             }
-            return headerValue.Split(',').Select(m => m.Trim()).ToList();
+            return headerValue!.Split(',').Select(m => m.Trim()).ToList();
         }
 
         public static IList<string> ParsePublicHeader(RtspResponse response)

@@ -694,7 +694,7 @@ namespace RtspClientExample
             SdpFile sdp_data;
             using (StreamReader sdp_stream = new(message.Data.AsStream()))
             {
-                sdp_data = SdpFile.Read(sdp_stream);
+                sdp_data = SdpFile.ReadLoose(sdp_stream);
             }
 
             // For old sony cameras, we need to use the control uri from the sdp
