@@ -334,7 +334,7 @@ namespace RtspClientExample
 
             if (nal_units.Any())
             {
-                ReceivedVideoData?.Invoke(this, new(nal_units.Data, nal_units.Timestamp));
+                ReceivedVideoData?.Invoke(this, new(nal_units.Data, nal_units.ClockTimestamp));
             }
         }
 
@@ -365,7 +365,7 @@ namespace RtspClientExample
 
             if (audioFrames.Any())
             {
-                ReceivedAudioData?.Invoke(this, new(audioFrames.Data, audioFrames.Timestamp));
+                ReceivedAudioData?.Invoke(this, new(audioFrames.Data, audioFrames.ClockTimestamp));
                 // AAC
                 // Write the audio frames to the file
                 //  ReceivedAAC?.Invoke(this, new(audio_codec, audioFrames.Data, aacPayload.ObjectType, aacPayload.FrequencyIndex, aacPayload.ChannelConfiguration, audioFrames.Timestamp));

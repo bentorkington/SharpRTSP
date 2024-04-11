@@ -231,15 +231,18 @@ namespace Rtsp.Rtp
             if (!packet.IsMarker)
             {
                 // we don't have a frame yet. Keep accumulating RTP packets
-                return new();
+                return RawMediaFrame.Empty;
             }
 
             // End Marker is set return the list of NALs
             // clone list of nalUnits and owners
             var result = new RawMediaFrame(
                 new List<ReadOnlyMemory<byte>>(nals),
-                new List<IMemoryOwner<byte>>(owners),
-                _timestamp);
+                new List<IMemoryOwner<byte>>(owners))
+            {
+                RtpTimestamp = packet.Timestamp,
+                ClockTimestamp = _timestamp
+            };
             nals.Clear();
             owners.Clear();
             return result;

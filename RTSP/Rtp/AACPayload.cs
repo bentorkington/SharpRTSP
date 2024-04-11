@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rtsp.Onvif;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 
@@ -189,7 +190,11 @@ namespace Rtsp.Rtp
                 position += aac_frame_size;
             }
 
-            return new(audioData, owners, DateTime.MinValue);
-        }
+            return new(audioData, owners)
+            {
+                RtpTimestamp = packet.Timestamp,
+                ClockTimestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _),
+        };
     }
+}
 }

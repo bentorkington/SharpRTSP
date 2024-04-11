@@ -181,14 +181,18 @@ namespace Rtsp.Rtp
             if (!packet.IsMarker || _frameStream.Length == 0)
             {
                 // we don't have a frame yet. Keep accumulating RTP packets
-                return new();
+                return RawMediaFrame.Empty;
             }
             // End Marker is set. The frame is complete
             var length = (int)_frameStream.Length;
             var memoryOwner = _memoryPool.Rent(length);
             _frameStream.GetBuffer().AsSpan()[..length].CopyTo(memoryOwner.Memory.Span);
             _frameStream.SetLength(0);
-            return new RawMediaFrame([memoryOwner.Memory[..length]], [memoryOwner], _timestamp ?? DateTime.MinValue);
+            return new RawMediaFrame([memoryOwner.Memory[..length]], [memoryOwner])
+            {
+                RtpTimestamp = packet.Timestamp,
+                ClockTimestamp = _timestamp ?? DateTime.MinValue,
+            };
         }
 
         private bool ProcessJPEGRTPFrame(ReadOnlySpan<byte> payload)

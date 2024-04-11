@@ -20,17 +20,14 @@ namespace Rtsp.Rtp
             }
         }
 
-        public DateTime Timestamp { get; }
+        public required DateTime ClockTimestamp { get; init; }
+        public required ulong RtpTimestamp { get; init; }
 
-        public RawMediaFrame() : this([], [], DateTime.MinValue)
-        {
-        }
 
-        public RawMediaFrame(IEnumerable<ReadOnlyMemory<byte>> data, IEnumerable<IMemoryOwner<byte>> owners, DateTime timestamp)
+        public RawMediaFrame(IEnumerable<ReadOnlyMemory<byte>> data, IEnumerable<IMemoryOwner<byte>> owners)
         {
             _data = data;
             _owners = owners;
-            Timestamp = timestamp;
         }
 
         public bool Any() => Data.Any();
@@ -56,5 +53,7 @@ namespace Rtsp.Rtp
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+        public static RawMediaFrame Empty { get; } = new RawMediaFrame([], []) { RtpTimestamp = 0, ClockTimestamp = DateTime.MinValue };
     }
 }

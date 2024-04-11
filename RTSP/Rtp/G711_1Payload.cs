@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rtsp.Onvif;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 
@@ -82,7 +83,7 @@ namespace Rtsp.Rtp
             if (sizeOfOneFrame == 0)
             {
                 // ERROR
-                return new();
+                return RawMediaFrame.Empty;
             }
 
             List<ReadOnlyMemory<byte>> audioDatas = [];
@@ -101,7 +102,11 @@ namespace Rtsp.Rtp
                 audioDatas.Add(memory);
                 frame_start += sizeOfOneFrame;
             }
-            return new(audioDatas, owners, DateTime.MinValue);
+            return new(audioDatas, owners)
+            {
+                ClockTimestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _),
+                RtpTimestamp = packet.Timestamp,
+            };
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rtsp.Onvif;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 
@@ -42,7 +43,7 @@ namespace Rtsp.Rtp
             // First byte is the Payload Header
             if (packet.PayloadSize < 1)
             {
-                return new();
+                return RawMediaFrame.Empty;
             }
             // byte payloadHeader = payload[0];
 
@@ -51,7 +52,11 @@ namespace Rtsp.Rtp
             // The rest of the RTP packet is the AMR data
             packet.Payload[1..].CopyTo(owner.Memory.Span);
 
-            return new([owner.Memory[..lenght]], [owner], DateTime.MinValue);
+            return new([owner.Memory[..lenght]], [owner])
+            {
+                ClockTimestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _),
+                RtpTimestamp = packet.Timestamp
+            };
         }
     }
 }

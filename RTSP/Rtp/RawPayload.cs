@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rtsp.Onvif;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 
@@ -24,7 +25,11 @@ namespace Rtsp.Rtp
             var owner = _memoryPool.Rent(packet.PayloadSize);
             var memory = owner.Memory[..packet.PayloadSize];
             packet.Payload.CopyTo(memory.Span);
-            return new RawMediaFrame([memory], [owner], DateTime.MinValue);
+            return new RawMediaFrame([memory], [owner])
+            {
+                ClockTimestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _),
+                RtpTimestamp = packet.Timestamp,
+            };
         }
     }
 }

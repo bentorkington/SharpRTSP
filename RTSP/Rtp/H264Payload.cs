@@ -213,7 +213,7 @@ namespace Rtsp.Rtp
             if (!packet.IsMarker)
             {
                 // we don't have a frame yet. Keep accumulating RTP packets
-                return new();
+                return RawMediaFrame.Empty;
             }
 
             // Output some statistics
@@ -224,8 +224,12 @@ namespace Rtsp.Rtp
             // clone list of nalUnits and owners
             var result = new RawMediaFrame(
                 new List<ReadOnlyMemory<byte>>(nalUnits),
-                new List<IMemoryOwner<byte>>(owners),
-                _timestamp);
+                new List<IMemoryOwner<byte>>(owners)
+                )
+            {
+                RtpTimestamp = packet.Timestamp,
+                ClockTimestamp = _timestamp,
+            };
             nalUnits.Clear();
             owners.Clear();
             return result;
