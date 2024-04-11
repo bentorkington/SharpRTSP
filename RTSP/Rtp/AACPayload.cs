@@ -194,7 +194,7 @@ namespace Rtsp.Rtp
             {
                 RtpTimestamp = packet.Timestamp,
                 ClockTimestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _),
-        };
+            };
+        }
     }
-}
 }
