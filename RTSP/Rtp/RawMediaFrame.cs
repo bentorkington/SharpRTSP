@@ -54,6 +54,6 @@ namespace Rtsp.Rtp
             GC.SuppressFinalize(this);
         }
 
-        public static RawMediaFrame Empty { get; } = new RawMediaFrame([], []) { RtpTimestamp = 0, ClockTimestamp = DateTime.MinValue };
+        public static RawMediaFrame Empty => new([], []) { RtpTimestamp = 0, ClockTimestamp = DateTime.MinValue };
     }
 }
