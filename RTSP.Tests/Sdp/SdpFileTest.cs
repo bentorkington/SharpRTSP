@@ -234,5 +234,55 @@ namespace Rtsp.Sdp.Tests
             });
 
         }
+        
+        [Test]
+        public void Read6Loose()
+        {
+            using var sdpFile = selfAssembly.GetManifestResourceStream("RTSP.Tests.Sdp.Data.test6.sdp");
+            using var testReader = new StreamReader(sdpFile);
+            SdpFile sdp = SdpFile.ReadLoose(testReader);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sdp.Version, Is.EqualTo(0));
+                Assert.That(sdp.Session, Is.EqualTo("HIK Media Server V3.0.2"));
+                Assert.That(sdp.Origin.Username, Is.EqualTo("-"));
+                Assert.That(sdp.Origin.SessionId, Is.EqualTo("1109162014219182"));
+                Assert.That(sdp.Origin.SessionVersion, Is.EqualTo("0"));
+                Assert.That(sdp.Origin.NetType, Is.EqualTo("IN"));
+                Assert.That(sdp.Origin.AddressType, Is.EqualTo("IP4"));
+                Assert.That(sdp.Origin.UnicastAddress, Is.EqualTo("0.0.0.0"));
+                Assert.That(sdp.Connection.Host, Is.EqualTo("0.0.0.0"));
+                Assert.That(sdp.Attributs, Has.Count.EqualTo(2));
+                Assert.That(sdp.Medias, Has.Count.EqualTo(1));
+                Assert.That(sdp.Medias[0].Attributs, Has.Count.EqualTo(5));
+            });
+
+        }
+        
+        [Test]
+        public void Read7Loose()
+        {
+            using var sdpFile = selfAssembly.GetManifestResourceStream("RTSP.Tests.Sdp.Data.test7.sdp");
+            using var testReader = new StreamReader(sdpFile);
+            SdpFile sdp = SdpFile.ReadLoose(testReader);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sdp.Version, Is.EqualTo(0));
+                Assert.That(sdp.Session, Is.EqualTo("Session99"));
+                Assert.That(sdp.Origin.Username, Is.EqualTo("-"));
+                Assert.That(sdp.Origin.SessionId, Is.EqualTo("98969043"));
+                Assert.That(sdp.Origin.SessionVersion, Is.EqualTo("98969053"));
+                Assert.That(sdp.Origin.NetType, Is.EqualTo("IN"));
+                Assert.That(sdp.Origin.AddressType, Is.EqualTo("IP6"));
+                Assert.That(sdp.Origin.UnicastAddress, Is.EqualTo("2201:056D::112E:144A:1E24"));
+                Assert.That(sdp.Connection.Host, Is.EqualTo("FF1E:03AD::7F2E:172A:1E24"));
+                Assert.That(sdp.Attributs, Has.Count.EqualTo(0));
+                Assert.That(sdp.Medias, Has.Count.EqualTo(1));
+                Assert.That(sdp.Medias[0].Attributs, Has.Count.EqualTo(5));
+            });
+
+        }
     }
 }

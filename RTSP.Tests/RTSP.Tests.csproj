@@ -29,6 +29,8 @@
 		<EmbeddedResource Include="Sdp\Data\test3.sdp" />
 		<EmbeddedResource Include="Sdp\Data\test4.sdp" />
 		<EmbeddedResource Include="Sdp\Data\test5.sdp" />
+		<EmbeddedResource Include="Sdp\Data\test6.sdp" />
+		<EmbeddedResource Include="Sdp\Data\test7.sdp" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\RTSP\RTSP.csproj" />
