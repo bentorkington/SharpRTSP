@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -7,9 +6,9 @@ namespace Rtsp.Sdp
 {
     public abstract class Connection
     {
-        private static string _ConnectionRegexString = @"IN (?<Type>(IP4|IP6)) (?<Address>[0-9a-zA-Z\.\/\:]*)";
+        private const string _ConnectionRegexString = @"IN (?<Type>(IP4|IP6)) (?<Address>[0-9a-zA-Z\.\/\:]*)";
 
-        private static Regex _ConnectionRegex = new Regex(_ConnectionRegexString);
+        private static Regex _ConnectionRegex = new(_ConnectionRegexString);
         
         public string Host { get; set; } = string.Empty;
 
