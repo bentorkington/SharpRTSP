@@ -1,10 +1,6 @@
 name: Build and Test
 
-on:
-  push:
-    branches: [ dotnetcore ]
-  pull_request:
-    branches: [ dotnetcore ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -21,4 +17,4 @@ jobs:
     - name: Build
       run: dotnet build --no-restore RTSP.sln
     - name: Test
-      run: dotnet test --no-build --verbosity normal RTSP.sln
+      run: dotnet test --no-build --verbosity normal --filter TestCategory!=Integration RTSP.sln
