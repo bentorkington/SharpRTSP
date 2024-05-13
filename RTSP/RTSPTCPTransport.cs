@@ -44,7 +44,7 @@ namespace Rtsp
         /// Gets the stream of the transport.
         /// </summary>
         /// <returns>A stream</returns>
-        public Stream GetStream() => _RtspServerClient.GetStream();
+        public virtual Stream GetStream() => _RtspServerClient.GetStream();
 
         /// <summary>
         /// Gets the remote address.
