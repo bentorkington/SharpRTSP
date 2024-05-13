@@ -1,10 +1,16 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Rtsp.Sdp
 {
     public abstract class Connection
     {
+        private static string _ConnectionRegexString = @"IN (?<Type>(IP4|IP6)) (?<Address>[0-9a-zA-Z\.\/\:]*)";
+
+        private static Regex _ConnectionRegex = new Regex(_ConnectionRegexString);
+        
         public string Host { get; set; } = string.Empty;
 
         /// <summary>
@@ -18,20 +24,22 @@ namespace Rtsp.Sdp
             if (value is null)
                 throw new ArgumentNullException(nameof(value));
 
-            string[] parts = value.Split(' ');
+            var matches = _ConnectionRegex.Matches(value);
 
-            if (parts.Length != 3)
-                throw new FormatException("Value do not contain 3 parts as needed.");
-
-            if (!string.Equals(parts[0], "IN", StringComparison.Ordinal))
-                throw new NotSupportedException(string.Format(CultureInfo.InvariantCulture, "Net type {0} not suported", parts[0]));
-
-            return parts[1] switch
+            if (matches.Count > 0)
             {
-                "IP4" => ConnectionIP4.Parse(parts[2]),
-                "IP6" => ConnectionIP6.Parse(parts[2]),
-                _ => throw new NotSupportedException(string.Format(CultureInfo.InvariantCulture, "Address type {0} not suported", parts[1])),
-            };
+                var firstMatch = matches[0];
+                var type = firstMatch.Groups["Type"];
+                return type.Value switch
+                {
+                    "IP4" => ConnectionIP4.Parse(firstMatch.Groups["Address"].Value),
+                    "IP6" => ConnectionIP6.Parse(firstMatch.Groups["Address"].Value),
+                    _ => throw new NotSupportedException(string.Format(CultureInfo.InvariantCulture,
+                        "Address type {0} not suported", firstMatch.Groups["Address"].Value))
+                };
+            }
+            
+            throw new FormatException("Unrecognised Connection value");
         }
     }
 }
