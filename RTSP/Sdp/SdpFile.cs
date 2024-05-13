@@ -278,13 +278,21 @@ namespace Rtsp.Sdp
                         returnValue.Phone = value.Value;
                         break;
                     case 'c':
-                        returnValue.Connection = Connection.Parse(value.Value);
+                        try { returnValue.Connection = Connection.Parse(value.Value); }
+                        catch (FormatException)
+                        { }
+                        catch (NotSupportedException)
+                        { }
                         break;
                     case 'b':
-                        returnValue.Bandwidth = Bandwidth.Parse(value.Value);
+                        try { returnValue.Bandwidth = Bandwidth.Parse(value.Value); }
+                        catch (ArgumentOutOfRangeException)
+                        { }
                         break;
                     case 't':
-                        returnValue.Timings.Add(Timing.Parse(value.Value));
+                        try { returnValue.Timings.Add(Timing.Parse(value.Value)); }
+                        catch (ArgumentException)
+                        { }
                         break;
                     case 'r':
                         // TODO parse repeat
