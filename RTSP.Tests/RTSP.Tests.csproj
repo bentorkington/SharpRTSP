@@ -29,9 +29,7 @@
 		<EmbeddedResource Include="Sdp\Data\test3.sdp" />
 		<EmbeddedResource Include="Sdp\Data\test4.sdp" />
 		<EmbeddedResource Include="Sdp\Data\test5.sdp" />
-		<None Remove="Sdp\Data\test6.sdp" />
 		<EmbeddedResource Include="Sdp\Data\test6.sdp" />
-		<None Remove="Sdp\Data\test7.sdp" />
 		<EmbeddedResource Include="Sdp\Data\test7.sdp" />
 	</ItemGroup>
 	<ItemGroup>
