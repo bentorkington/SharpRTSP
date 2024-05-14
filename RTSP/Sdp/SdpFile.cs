@@ -239,7 +239,7 @@ namespace Rtsp.Sdp
         /// Read without checking the content, some attribute may be empty after read.
         /// </remarks>
         /// <param name="sdpStream">Sdp stream text</param>
-        /// <returns></returns>
+        /// <returns>SdpFile object with all the value that can be extracted</returns>
         public static SdpFile ReadLoose(TextReader sdpStream)
         {
             SdpFile returnValue = new();
