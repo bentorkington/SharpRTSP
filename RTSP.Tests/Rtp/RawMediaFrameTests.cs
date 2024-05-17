@@ -24,7 +24,6 @@ namespace Rtsp.Rtp.Tests
             Assert.That(rawMediaFrame.Any(), Is.False);
         }
 
-
         [Test()]
         public void AnyDisposedTest()
         {
@@ -37,7 +36,6 @@ namespace Rtsp.Rtp.Tests
                 using RawMediaFrame rawMediaFrame = RawMediaFrame.Empty;
                 Assert.That(rawMediaFrame.Any(), Is.False);
             }
-
         }
     }
 }

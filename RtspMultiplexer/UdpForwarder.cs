@@ -99,7 +99,7 @@
         }
 
 
-
+        /// <summary>
         /// Gets or sets the forward host for command.
         /// </summary>
         /// <value>The forward host for command.</value>
@@ -254,8 +254,5 @@
                 _logger.Error(error, "Error during command forwarding");
             }
         }
-
-
-
     }
 }

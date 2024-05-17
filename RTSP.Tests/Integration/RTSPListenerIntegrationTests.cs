@@ -24,8 +24,6 @@ public class RTSPListenerIntegrationTests
 
     private readonly object _lock = new();
 
-
-
     [TestCase("rtsp://localhost:8554/Test")]
     [TestCase("rtsps://localhost:8322/Test")]
     [Category("Integration")]
@@ -69,9 +67,7 @@ public class RTSPListenerIntegrationTests
 
     private void ListenerOnMessageReceived(object? sender, RtspChunkEventArgs e)
     {
-        var message = e.Message as RtspResponse;
-
-        if (message is null || message.OriginalRequest is null)
+        if (e.Message is not RtspResponse message || message.OriginalRequest is null)
             return;
 
         lock (_lock)

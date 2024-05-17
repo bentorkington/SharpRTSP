@@ -30,7 +30,7 @@
         /// <summary>
         /// Gets a value indicating whether this <see cref="IRtspTransport"/> is connected.
         /// </summary>
-        /// <value><c>true</c> if connected; otherwise, <c>false</c>.</value>
+        /// <value><see langword="true"/> if connected; otherwise, <see langword="false"/>.</value>
         bool Connected { get; }
 
         /// <summary>

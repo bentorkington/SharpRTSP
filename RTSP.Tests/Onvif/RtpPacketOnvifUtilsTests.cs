@@ -7,8 +7,6 @@ namespace Rtsp.Tests.Onvif
     [TestFixture]
     public class RtpPacketOnvifUtilsTests
     {
-
-
         [Test]
         public void ProcessSimpleRTPTimestampExtensionTest()
         {
@@ -25,7 +23,6 @@ namespace Rtsp.Tests.Onvif
             extensionSpan = extensionSpan[headerPosition..];
             Assert.That(extensionSpan.Length, Is.EqualTo(0));
         }
-
 
         [Test]
         public void ProcessSimpleRTPTimestampExtensionTestOtherExtension()

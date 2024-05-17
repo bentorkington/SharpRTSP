@@ -26,7 +26,6 @@ namespace RtspCameraExample
         /// </summary>
         private const int H264_EMULATION_PREVENTION_BYTE = 0x03;
 
-
         /// <summary>
         ///  Bit buffer index
         /// </summary>
@@ -195,8 +194,6 @@ namespace RtspCameraExample
 
             //Used to add NAL header stream
             //Remember: NAL header is byte oriented
-
-
             if (doAlign)
             {
                 DoByteAlign();

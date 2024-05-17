@@ -37,7 +37,6 @@ namespace Rtsp
                         throw new ArgumentException("\"realm\" parameter is not found in header", nameof(authenticateHeader));
                     return new AuthenticationBasic(credential, realm);
                 }
-
             }
 
             if (authenticateHeader.StartsWith("Digest", StringComparison.OrdinalIgnoreCase))

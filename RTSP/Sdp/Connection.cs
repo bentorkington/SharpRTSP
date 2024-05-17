@@ -8,8 +8,8 @@ namespace Rtsp.Sdp
     {
         private const string _ConnectionRegexString = @"IN (?<Type>(IP4|IP6)) (?<Address>[0-9a-zA-Z\.\/\:]*)";
 
-        private static Regex _ConnectionRegex = new(_ConnectionRegexString);
-        
+        private static readonly Regex _ConnectionRegex = new(_ConnectionRegexString, RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1));
+
         public string Host { get; set; } = string.Empty;
 
         /// <summary>
@@ -37,7 +37,7 @@ namespace Rtsp.Sdp
                         "Address type {0} not suported", firstMatch.Groups["Address"].Value))
                 };
             }
-            
+
             throw new FormatException("Unrecognised Connection value");
         }
     }

@@ -185,12 +185,11 @@
             return aDestination + "|Session:" + aSessionHeaderValue;
         }
 
-
         internal void AddForwarder(Uri uri, Forwarder forwarder)
         {
             Contract.Requires(uri != null);
 
-            // Configruation change, remove the old forwarder
+            // Configuration change, remove the old forwarder
             if (ListOfForwader.TryGetValue(uri, out Forwarder existingForwarder))
             {
                 existingForwarder.Stop();

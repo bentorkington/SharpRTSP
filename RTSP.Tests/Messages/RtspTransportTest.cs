@@ -93,8 +93,11 @@ namespace Rtsp.Messages.Tests
                 Assert.That(testValue.LowerTransport, Is.EqualTo(RtspTransport.LowerTransportType.TCP));
                 Assert.That(testValue.Interleaved?.First, Is.EqualTo(3));
             });
-            Assert.That(testValue.Interleaved?.IsSecondPortPresent, Is.True);
-            Assert.That(testValue.Interleaved?.Second, Is.EqualTo(4));
+            Assert.Multiple(() =>
+            {
+                Assert.That(testValue.Interleaved?.IsSecondPortPresent, Is.True);
+                Assert.That(testValue.Interleaved?.Second, Is.EqualTo(4));
+            });
         }
 
         [Test]

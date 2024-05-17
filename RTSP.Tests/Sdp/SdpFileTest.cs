@@ -46,21 +46,27 @@ namespace Rtsp.Sdp.Tests
 
             Assert.That(readenSDP.Version, Is.EqualTo(0));
             Assert.That(readenSDP.Origin, Is.Not.Null);
-            Assert.That(readenSDP.Origin.Username, Is.EqualTo("Teleste"));
-            Assert.That(readenSDP.Origin.SessionId, Is.EqualTo("749719680"));
-            Assert.That(readenSDP.Origin.SessionVersion, Is.EqualTo("2684264576"));
-            Assert.That(readenSDP.Origin.NetType, Is.EqualTo("IN"));
-            Assert.That(readenSDP.Origin.AddressType, Is.EqualTo("IP4"));
-            Assert.That(readenSDP.Origin.UnicastAddress, Is.EqualTo("172.16.200.193"));
-            Assert.That(readenSDP.Session, Is.EqualTo("COD_9003-P2-0"));
-            Assert.That(readenSDP.SessionInformation, Is.EqualTo("Teleste MPH H.264 Encoder - HK01121135"));
-            Assert.That(readenSDP.Connection, Is.Not.Null);
-            Assert.That(readenSDP.Connection.NumberOfAddress, Is.EqualTo(1), "Number of address");
-            Assert.That(readenSDP.Connection, Is.InstanceOf<ConnectionIP4>());
-            Assert.That((readenSDP.Connection as ConnectionIP4)?.Ttl, Is.EqualTo(16));
-            Assert.That(readenSDP.Timings, Has.Count.EqualTo(1));
-            //Assert.Fail("Timing not well implemented...");
-            Assert.That(readenSDP.Medias, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(readenSDP.Origin.Username, Is.EqualTo("Teleste"));
+                Assert.That(readenSDP.Origin.SessionId, Is.EqualTo("749719680"));
+                Assert.That(readenSDP.Origin.SessionVersion, Is.EqualTo("2684264576"));
+                Assert.That(readenSDP.Origin.NetType, Is.EqualTo("IN"));
+                Assert.That(readenSDP.Origin.AddressType, Is.EqualTo("IP4"));
+                Assert.That(readenSDP.Origin.UnicastAddress, Is.EqualTo("172.16.200.193"));
+                Assert.That(readenSDP.Session, Is.EqualTo("COD_9003-P2-0"));
+                Assert.That(readenSDP.SessionInformation, Is.EqualTo("Teleste MPH H.264 Encoder - HK01121135"));
+                Assert.That(readenSDP.Connection, Is.Not.Null);
+            });
+            Assert.Multiple(() =>
+            {
+                Assert.That(readenSDP.Connection.NumberOfAddress, Is.EqualTo(1), "Number of address");
+                Assert.That(readenSDP.Connection, Is.InstanceOf<ConnectionIP4>());
+                Assert.That((readenSDP.Connection as ConnectionIP4)?.Ttl, Is.EqualTo(16));
+                Assert.That(readenSDP.Timings, Has.Count.EqualTo(1));
+                //Assert.Fail("Timing not well implemented...");
+                Assert.That(readenSDP.Medias, Has.Count.EqualTo(1));
+            });
             Media media = readenSDP.Medias[0];
             Assert.That(media.Attributs, Has.Count.EqualTo(3));
 
@@ -92,8 +98,11 @@ namespace Rtsp.Sdp.Tests
             using var testReader = new StreamReader(sdpFile);
             SdpFile readenSDP = SdpFile.ReadLoose(testReader);
 
-            Assert.That(readenSDP.Version, Is.EqualTo(0));
-            Assert.That(readenSDP.Origin, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(readenSDP.Version, Is.EqualTo(0));
+                Assert.That(readenSDP.Origin, Is.Not.Null);
+            });
             Assert.Multiple(() =>
             {
                 Assert.That(readenSDP.Origin.Username, Is.EqualTo("Teleste"));
@@ -243,7 +252,6 @@ namespace Rtsp.Sdp.Tests
                 Assert.That(sdp.Medias[0].Connections, Has.Count.EqualTo(1));
                 Assert.That(sdp.Medias[0].Connections[0].Host, Is.EqualTo("0.0.0.0"));
             });
-
         }
 
         [Test]
@@ -270,7 +278,6 @@ namespace Rtsp.Sdp.Tests
                 Assert.That(sdp.Medias, Has.Count.EqualTo(1));
                 Assert.That(sdp.Medias[0].Attributs, Has.Count.EqualTo(5));
             });
-
         }
 
         [Test]
@@ -297,7 +304,6 @@ namespace Rtsp.Sdp.Tests
                 Assert.That(sdp.Medias, Has.Count.EqualTo(1));
                 Assert.That(sdp.Medias[0].Attributs, Has.Count.EqualTo(5));
             });
-
         }
     }
 }

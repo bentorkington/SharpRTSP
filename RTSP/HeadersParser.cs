@@ -12,7 +12,7 @@ namespace Rtsp
             string? header;
             while (!string.IsNullOrEmpty(header = headersReader.ReadLine()))
             {
-                int colonPos = header.IndexOf(':');
+                int colonPos = header.IndexOf(':', StringComparison.InvariantCulture);
                 if (colonPos == -1) { continue; }
                 string key = header[..colonPos].Trim().ToUpperInvariant();
                 string value = header[++colonPos..].Trim();

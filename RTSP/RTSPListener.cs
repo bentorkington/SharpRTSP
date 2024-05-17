@@ -327,7 +327,7 @@
                                 needMoreChar = false;
                                 break;
                             case '\n':
-                                oneLine = Encoding.UTF8.GetString(readOneMessageBuffer.ToArray());
+                                oneLine = Encoding.UTF8.GetString([.. readOneMessageBuffer]);
                                 readOneMessageBuffer.Clear();
                                 needMoreChar = false;
                                 break;
