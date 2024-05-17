@@ -15,7 +15,7 @@ namespace Rtsp.Messages.Tests
                 Data = new byte[] { 45, 63, 36, 42, 65, 00, 99 },
                 SourcePort = new RtspListener(Substitute.For<IRtspTransport>())
             };
-            RtspData cloneObject = testObject.Clone() as RtspData;
+            var cloneObject = testObject.Clone() as RtspData;
 
             Assert.That(cloneObject, Is.Not.Null);
             Assert.Multiple(() =>

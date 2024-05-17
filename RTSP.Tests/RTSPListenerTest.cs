@@ -19,9 +19,7 @@ namespace Rtsp.Tests
         readonly object _lock = new();
         List<RtspChunk> _receivedMessage;
         List<RtspChunk> _receivedData;
-
-
-        private void MessageReceived(object sender, RtspChunkEventArgs e)
+        private void MessageReceived(object? sender, RtspChunkEventArgs e)
         {
             lock (_lock)
             {
@@ -29,7 +27,7 @@ namespace Rtsp.Tests
             }
         }
 
-        private void DataReceived(object sender, RtspChunkEventArgs e)
+        private void DataReceived(object? sender, RtspChunkEventArgs e)
         {
             lock (_lock)
             {
@@ -54,7 +52,6 @@ namespace Rtsp.Tests
                 time += interval;
             }
         }
-
 
         [SetUp]
         public void Init()
@@ -106,12 +103,13 @@ namespace Rtsp.Tests
                 Assert.That(theMessage.SourcePort, Is.SameAs(testedListener));
             });
 
-            RtspRequest theRequest = theMessage as RtspRequest;
+            Assert.That(theMessage, Is.InstanceOf<RtspRequest>());
+            var theRequest = theMessage as RtspRequest;
             Assert.Multiple(() =>
             {
-                Assert.That(theRequest.RequestTyped, Is.EqualTo(RtspRequest.RequestType.OPTIONS));
-                Assert.That(theRequest.Headers, Has.Count.EqualTo(3));
-                Assert.That(theRequest.CSeq, Is.EqualTo(1));
+                Assert.That(theRequest?.RequestTyped, Is.EqualTo(RtspRequest.RequestType.OPTIONS));
+                Assert.That(theRequest?.Headers, Has.Count.EqualTo(3));
+                Assert.That(theRequest?.CSeq, Is.EqualTo(1));
             });
             Assert.That(theRequest.Headers.Keys, Does.Contain("Require"));
             Assert.Multiple(() =>
@@ -155,13 +153,14 @@ namespace Rtsp.Tests
                 Assert.That(theMessage.SourcePort, Is.SameAs(testedListener));
             });
 
-            RtspRequest theRequest = theMessage as RtspRequest;
+            var theRequest = theMessage as RtspRequest;
+            Assert.That(theRequest, Is.Not.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(theRequest.RequestTyped, Is.EqualTo(RtspRequest.RequestType.PLAY));
                 Assert.That(theRequest.Headers, Has.Count.EqualTo(1));
                 Assert.That(theRequest.CSeq, Is.EqualTo(835));
-                Assert.That(theRequest.RtspUri.ToString(), Is.EqualTo("rtsp://audio.example.com/audio"));
+                Assert.That(theRequest.RtspUri?.ToString(), Is.EqualTo("rtsp://audio.example.com/audio"));
 
                 Assert.That(_receivedData, Is.Empty);
             });
@@ -200,7 +199,8 @@ namespace Rtsp.Tests
                 Assert.That(theMessage.SourcePort, Is.SameAs(testedListener));
             });
 
-            RtspResponse theResponse = theMessage as RtspResponse;
+            var theResponse = theMessage as RtspResponse;
+            Assert.That(theResponse, Is.Not.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(theResponse.ReturnCode, Is.EqualTo(551));
@@ -250,6 +250,7 @@ namespace Rtsp.Tests
             Assert.That(_receivedData[0], Is.InstanceOf<RtspData>());
             var dataMessage = _receivedData[0] as RtspData;
 
+            Assert.That(dataMessage, Is.Not.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(dataMessage.Channel, Is.EqualTo(11));
@@ -305,7 +306,7 @@ namespace Rtsp.Tests
             });
             Assert.That(_receivedData[0], Is.InstanceOf<RtspData>());
             var dataMessage = _receivedData[0] as RtspData;
-
+            Assert.That(dataMessage, Is.Not.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(dataMessage.Channel, Is.EqualTo(11));
@@ -315,7 +316,7 @@ namespace Rtsp.Tests
 
             Assert.That(_receivedData[1], Is.InstanceOf<RtspData>());
             dataMessage = _receivedData[1] as RtspData;
-
+            Assert.That(dataMessage, Is.Not.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(dataMessage.Channel, Is.EqualTo(11));
@@ -404,7 +405,7 @@ namespace Rtsp.Tests
         }
 
         [Test]
-        public void SendDataBeginEnd()
+        public async Task SendDataBeginEnd()
         {
             const int dataLenght = 300;
 
@@ -422,13 +423,20 @@ namespace Rtsp.Tests
                 Data = Enumerable.Range(0, dataLenght).Select(x => (byte)x).ToArray()
             };
 
+            TaskCompletionSource<int> taskCompletionSource = new();
+
             // Run
-            var asyncResult = testedListener.BeginSendData(data, null, null);
-            testedListener.EndSendData(asyncResult);
+            var asyncResult = testedListener.BeginSendData(data, ar => {
+                testedListener.EndSendData(ar);
+                taskCompletionSource.SetResult(0);
+            }, new());
+
+            await taskCompletionSource.Task;
 
             var result = stream.GetBuffer();
 
             int index = 0;
+            Assert.That(result, Has.Length.EqualTo(4 + dataLenght));
             Assert.That(result[index++], Is.EqualTo((byte)'$'));
             Assert.That(result[index++], Is.EqualTo(data.Channel));
             Assert.That(result[index++], Is.EqualTo((dataLenght & 0xFF00) >> 8));
@@ -496,7 +504,7 @@ namespace Rtsp.Tests
             };
 
             Assert.That(
-                () => testedListener.BeginSendData(data, null, null)
+                () => testedListener.BeginSendData(data, (_) => { }, new())
                 , Throws.InstanceOf<ArgumentException>());
         }
 

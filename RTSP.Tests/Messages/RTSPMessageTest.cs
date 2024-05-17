@@ -15,7 +15,8 @@ namespace Rtsp.Messages.Tests
             RtspMessage oneMessage = RtspMessage.GetRtspMessage(requestLine);
             Assert.That(oneMessage, Is.InstanceOf<RtspRequest>());
 
-            RtspRequest oneRequest = oneMessage as RtspRequest;
+            var oneRequest = oneMessage as RtspRequest;
+            Assert.That(oneRequest,Is.Not.Null);
             Assert.That(oneRequest.RequestTyped, Is.EqualTo(requestType));
         }
 
@@ -27,7 +28,8 @@ namespace Rtsp.Messages.Tests
             RtspMessage oneMessage = RtspMessage.GetRtspMessage(requestLine);
             Assert.That(oneMessage, Is.InstanceOf<RtspResponse>());
 
-            RtspResponse oneResponse = oneMessage as RtspResponse;
+            var oneResponse = oneMessage as RtspResponse;
+            Assert.That(oneResponse, Is.Not.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(oneResponse.ReturnCode, Is.EqualTo(returnCode));

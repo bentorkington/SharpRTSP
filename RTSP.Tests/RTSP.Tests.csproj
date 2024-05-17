@@ -3,7 +3,7 @@
 		<TargetFrameworks>net8.0;net472</TargetFrameworks>
     <LangVersion>12.0</LangVersion>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-
+    <Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
 	  <None Remove="Rtp\Data\img_jpg_0.jpg" />

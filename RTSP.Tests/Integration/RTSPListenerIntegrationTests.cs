@@ -20,8 +20,7 @@ namespace Rtsp.Tests.Integration;
 /// </summary>
 public class RTSPListenerIntegrationTests
 {
-    private readonly Dictionary<RtspRequest, (TaskCompletionSource<RtspResponse>, DateTime)> _messageQueue
-        = new();
+    private readonly Dictionary<RtspRequest, TaskCompletionSource<RtspResponse>> _messageQueue = [];
 
     private readonly object _lock = new();
 
@@ -49,7 +48,7 @@ public class RTSPListenerIntegrationTests
         {
             lock (_lock)
             {
-                _messageQueue.Add(message, (taskCompletionSource, DateTime.Now));
+                _messageQueue.Add(message, taskCompletionSource);
             }
 
             var result = await taskCompletionSource.Task;
@@ -63,20 +62,23 @@ public class RTSPListenerIntegrationTests
         }
     }
 
-    private bool AcceptAllCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+    private bool AcceptAllCertificate(object? sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
     {
         return true;
     }
 
     private void ListenerOnMessageReceived(object? sender, RtspChunkEventArgs e)
     {
-        RtspResponse? message = e.Message as RtspResponse;
+        var message = e.Message as RtspResponse;
+
+        if (message is null || message.OriginalRequest is null)
+            return;
 
         lock (_lock)
         {
-            if (_messageQueue.ContainsKey(message.OriginalRequest))
+            if (_messageQueue.TryGetValue(message.OriginalRequest, out TaskCompletionSource<RtspResponse>? value))
             {
-                _messageQueue[message.OriginalRequest].Item1.SetResult(message);
+                value.SetResult(message);
                 _messageQueue.Remove(message.OriginalRequest);
             }
         }

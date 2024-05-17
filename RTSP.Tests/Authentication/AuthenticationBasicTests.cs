@@ -13,7 +13,7 @@ namespace RTSP.Tests.Authentication
             const string wanted = "Basic dXNlcm5hbWVAZXhhbXBsZS5jb206UGFzc3dvcmRAIVhZWg==";
             var testObject = new AuthenticationBasic(new NetworkCredential("username@example.com", "Password@!XYZ"), "Test Realm");
 
-            var header = testObject.GetResponse(0, "rtsp://test/uri", "GET_PARAMETER", null);
+            var header = testObject.GetResponse(0, "rtsp://test/uri", "GET_PARAMETER", []);
 
             Assert.That(header, Is.EqualTo(wanted));
         }

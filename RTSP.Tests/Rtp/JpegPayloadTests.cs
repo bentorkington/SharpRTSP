@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using Rtsp.Rtp;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -13,11 +14,12 @@ namespace RTSP.Tests.Rtp
         private RtpPacket ReadPacket(string resourceName)
         {
             using var rtpFile = selfAssembly.GetManifestResourceStream($"RTSP.Tests.Rtp.Data.{resourceName}.rtp");
+            Debug.Assert(rtpFile != null, "Missing test file");
             using var testReader = new StreamReader(rtpFile);
             byte[] buffer = new byte[16 * 1024];
             using var ms = new MemoryStream();
             int read;
-            while ((read = rtpFile.Read(buffer, 0, buffer.Length)) > 0)
+            while ((read = rtpFile!.Read(buffer, 0, buffer.Length)) > 0)
             {
                 ms.Write(buffer, 0, read);
             }
@@ -27,11 +29,12 @@ namespace RTSP.Tests.Rtp
         private byte[] ReadBytes(string resourceName)
         {
             using var rtpFile = selfAssembly.GetManifestResourceStream($"RTSP.Tests.Rtp.Data.{resourceName}");
+            Debug.Assert(rtpFile != null, "Missing test file");
             using var testReader = new StreamReader(rtpFile);
             byte[] buffer = new byte[16 * 1024];
             using var ms = new MemoryStream();
             int read;
-            while ((read = rtpFile.Read(buffer, 0, buffer.Length)) > 0)
+            while ((read = rtpFile!.Read(buffer, 0, buffer.Length)) > 0)
             {
                 ms.Write(buffer, 0, read);
             }

@@ -91,17 +91,22 @@ namespace Rtsp.Messages.Tests
             Assert.Multiple(() =>
             {
                 Assert.That(testValue.LowerTransport, Is.EqualTo(RtspTransport.LowerTransportType.TCP));
-                Assert.That(testValue.Interleaved.First, Is.EqualTo(3));
+                Assert.That(testValue.Interleaved?.First, Is.EqualTo(3));
             });
-            Assert.That(testValue.Interleaved.IsSecondPortPresent, Is.True);
-            Assert.That(testValue.Interleaved.Second, Is.EqualTo(4));
+            Assert.That(testValue.Interleaved?.IsSecondPortPresent, Is.True);
+            Assert.That(testValue.Interleaved?.Second, Is.EqualTo(4));
         }
 
         [Test]
         public void Parse4()
         {
             RtspTransport testValue = RtspTransport.Parse("RTP/AVP;unicast;destination=1.2.3.4;source=3.4.5.6;server_port=5000-5001;client_port=5003-5004");
-            Assert.That(testValue.IsMulticast, Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(testValue.IsMulticast, Is.False);
+                Assert.That(testValue.ServerPort, Is.Not.Null);
+                Assert.That(testValue.ClientPort, Is.Not.Null);
+            });
             Assert.Multiple(() =>
             {
                 Assert.That(testValue.LowerTransport, Is.EqualTo(RtspTransport.LowerTransportType.UDP));
