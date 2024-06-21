@@ -1,6 +1,7 @@
 ﻿using NSubstitute;
 using NUnit.Framework;
 using Rtsp.Messages;
+using RTSP.Tests.TestUtils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -78,11 +79,14 @@ namespace Rtsp.Tests
                 Proxy-Require: gzipped-messages
                 
                 """;
-            var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new MemoryStream(Encoding.UTF8.GetBytes(message)),
+                Out = new MemoryStream()
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -106,11 +110,11 @@ namespace Rtsp.Tests
             Assert.That(theMessage, Is.InstanceOf<RtspRequest>());
             var theRequest = theMessage as RtspRequest;
             Assert.Multiple(() =>
-            {
-                Assert.That(theRequest?.RequestTyped, Is.EqualTo(RtspRequest.RequestType.OPTIONS));
-                Assert.That(theRequest?.Headers, Has.Count.EqualTo(3));
-                Assert.That(theRequest?.CSeq, Is.EqualTo(1));
-            });
+                    {
+                        Assert.That(theRequest?.RequestTyped, Is.EqualTo(RtspRequest.RequestType.OPTIONS));
+                        Assert.That(theRequest?.Headers, Has.Count.EqualTo(3));
+                        Assert.That(theRequest?.CSeq, Is.EqualTo(1));
+                    });
             Assert.That(theRequest.Headers.Keys, Does.Contain("Require"));
             Assert.Multiple(() =>
             {
@@ -128,11 +132,14 @@ namespace Rtsp.Tests
             message += "PLAY rtsp://audio.example.com/audio RTSP/1.0\r\n";
             message += "CSeq: 835\r\n";
             message += "\r\n";
-            var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new MemoryStream(Encoding.UTF8.GetBytes(message)),
+                Out = new MemoryStream()
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -174,11 +181,14 @@ namespace Rtsp.Tests
             message += "CSeq: 302\n";
             message += "Unsupported: funky-feature\n";
             message += "\r\n";
-            var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new MemoryStream(Encoding.UTF8.GetBytes(message)),
+                Out = new MemoryStream()
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -226,11 +236,14 @@ namespace Rtsp.Tests
             buffer[3] = 0x34;
             Buffer.BlockCopy(data, 0, buffer, 4, data.Length);
 
-            var stream = new MemoryStream(buffer);
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new MemoryStream(buffer),
+                Out = new MemoryStream()
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -276,10 +289,14 @@ namespace Rtsp.Tests
             using var pipeServer = new AnonymousPipeServerStream();
             using var pipeClient = new AnonymousPipeClientStream(pipeServer.GetClientHandleAsString());
 
-            _mockTransport.GetStream().Returns(pipeClient);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = pipeClient,
+                Out = new MemoryStream()
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -329,11 +346,14 @@ namespace Rtsp.Tests
         public async Task ReceiveNoMessage()
         {
             string message = string.Empty;
-            var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new MemoryStream(Encoding.UTF8.GetBytes(message)),
+                Out = new MemoryStream()
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -360,7 +380,7 @@ namespace Rtsp.Tests
             _mockTransport.GetStream().Returns(stream);
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -384,12 +404,17 @@ namespace Rtsp.Tests
         public void SendMessage()
         {
             var stream = new MemoryStream();
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new InBlockingStream(),
+                Out = stream,
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
+            testedListener.Start();
 
             RtspMessage message = new RtspRequestOptions();
 
@@ -405,17 +430,23 @@ namespace Rtsp.Tests
         }
 
         [Test]
-        public async Task SendDataBeginEnd()
+        public async Task SendDataAsync()
         {
             const int dataLenght = 300;
+            var outStream = new MemoryStream();
+            InOutStream stream = new()
+            {
+                In = new InBlockingStream(),
+                Out = outStream,
+            };
 
-            var stream = new MemoryStream();
             _mockTransport.GetStream().Returns(stream);
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
+            testedListener.Start();
 
             var data = new RtspData
             {
@@ -423,17 +454,9 @@ namespace Rtsp.Tests
                 Data = Enumerable.Range(0, dataLenght).Select(x => (byte)x).ToArray()
             };
 
-            TaskCompletionSource<int> taskCompletionSource = new();
+            await testedListener.SendDataAsync(data);
 
-            // Run
-            var asyncResult = testedListener.BeginSendData(data, ar => {
-                testedListener.EndSendData(ar);
-                taskCompletionSource.SetResult(0);
-            }, new());
-
-            await taskCompletionSource.Task;
-
-            var result = stream.GetBuffer();
+            var result = outStream.GetBuffer();
 
             int index = 0;
             Assert.That(result, Has.Length.EqualTo(4 + dataLenght));
@@ -454,12 +477,17 @@ namespace Rtsp.Tests
             const int dataLenght = 45;
 
             var stream = new MemoryStream();
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new InBlockingStream(),
+                Out = stream
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
+            testedListener.Start();
 
             var data = new RtspData
             {
@@ -485,15 +513,19 @@ namespace Rtsp.Tests
         }
 
         [Test]
-        public void SendDataTooLargeBeginEnd()
+        public void SendDataTooLargeAsync()
         {
             const int dataLenght = 0x10001;
 
             var stream = new MemoryStream();
-            _mockTransport.GetStream().Returns(stream);
+            _mockTransport.GetStream().Returns(new InOutStream()
+            {
+                In = new InBlockingStream(),
+                Out = stream,
+            });
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 
@@ -504,7 +536,7 @@ namespace Rtsp.Tests
             };
 
             Assert.That(
-                () => testedListener.BeginSendData(data, (_) => { }, new())
+                () => testedListener.SendDataAsync(data)
                 , Throws.InstanceOf<ArgumentException>());
         }
 
@@ -517,7 +549,7 @@ namespace Rtsp.Tests
             _mockTransport.GetStream().Returns(stream);
 
             // Setup test object.
-            var testedListener = new RtspListener(_mockTransport);
+            using var testedListener = new RtspListener(_mockTransport);
             testedListener.MessageReceived += MessageReceived;
             testedListener.DataReceived += DataReceived;
 

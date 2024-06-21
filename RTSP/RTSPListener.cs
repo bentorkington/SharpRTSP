@@ -434,73 +434,42 @@
             return currentMessage;
         }
 
-        /// <summary>
-        /// Begins the send data.
-        /// </summary>
-        /// <param name="aRtspData">A Rtsp data.</param>
-        /// <param name="asyncCallback">The async callback.</param>
-        /// <param name="state">A state.</param>
-        public IAsyncResult? BeginSendData(RtspData aRtspData, AsyncCallback asyncCallback, object state)
-        {
-            if (aRtspData is null)
-                throw new ArgumentNullException(nameof(aRtspData));
-            if (aRtspData.Data.IsEmpty)
-                throw new ArgumentException("no data present", nameof(aRtspData));
-
-            Contract.EndContractBlock();
-
-            return BeginSendData(aRtspData.Channel, aRtspData.Data.Span, asyncCallback, state);
-        }
+        public Task SendDataAsync(RtspData data) => SendDataAsync(data.Channel, data.Data);
 
         /// <summary>
-        /// Begins the send data.
+        /// Send data (Synchronous)
         /// </summary>
         /// <param name="channel">The channel.</param>
         /// <param name="frame">The frame.</param>
-        /// <param name="asyncCallback">The async callback.</param>
-        /// <param name="state">A state.</param>
-        public IAsyncResult? BeginSendData(int channel, ReadOnlySpan<byte> frame, AsyncCallback asyncCallback, object state)
+        public async Task SendDataAsync(int channel, ReadOnlyMemory<byte> frame)
         {
-            if (frame.IsEmpty)
-                throw new ArgumentNullException(nameof(frame));
             if (frame.Length > 0xFFFF)
                 throw new ArgumentException("frame too large", nameof(frame));
+
+            if (_cancelationTokenSource is null)
+                throw new InvalidOperationException("Listener is not started");
+
             Contract.EndContractBlock();
 
             if (!_transport.Connected)
             {
                 if (!AutoReconnect)
-                    return null; // cannot write when transport is disconnected
+                    throw new Exception("Connection is lost");
 
                 _logger.LogWarning("Reconnect to a client, strange.");
                 Reconnect();
             }
 
-            Span<byte> data = new byte[4 + frame.Length]; // add 4 bytes for the header
+            // add 4 bytes for the header
+            var packetLength = 4 + frame.Length;
+            var data = ArrayPool<byte>.Shared.Rent(packetLength);
             data[0] = 36; // '$' character
             data[1] = (byte)channel;
             data[2] = (byte)((frame.Length & 0xFF00) >> 8);
             data[3] = (byte)(frame.Length & 0x00FF);
-            frame.CopyTo(data[4..]);
-            //Array.Copy(frame.Span, 0, data, 4, frame.Length);
-            return _stream.BeginWrite(data.ToArray(), 0, data.Length, asyncCallback, state);
-        }
-
-        /// <summary>
-        /// Ends the send data.
-        /// </summary>
-        /// <param name="result">The result.</param>
-        public void EndSendData(IAsyncResult result)
-        {
-            try
-            {
-                _stream.EndWrite(result);
-            }
-            catch (Exception e)
-            {
-                // Error, for example stream has already been Disposed
-                _logger.LogDebug(e, "Error during end send (can be ignored) ");
-            }
+            frame.CopyTo(data.AsMemory(4));
+            await _stream.WriteAsync(data.AsMemory(0, packetLength), _cancelationTokenSource.Token).ConfigureAwait(false);
+            ArrayPool<byte>.Shared.Return(data);
         }
 
         /// <summary>

@@ -7,6 +7,7 @@
     using System.Net;
     using System.Net.Sockets;
     using System.Threading;
+    using System.Threading.Tasks;
 
     public class TCPtoUDPForwader : Forwarder
     {
@@ -93,12 +94,14 @@
             byte[] frame;
             try
             {
-                do
+                // Todo use cancellation token
+                while (true)
                 {
                     frame = ListenCUdpPort.Receive(ref udpEndPoint);
-                    ForwardCommand.BeginSendData(ForwardInterleavedCommand, frame, new AsyncCallback(EndSendCommand), frame);
+                    ForwardCommand.SendDataAsync(ForwardInterleavedCommand, frame)
+                        .ContinueWith(_ => CommandFrameSended(frame), TaskContinuationOptions.OnlyOnRanToCompletion)
+                        .ContinueWith(t => _logger.Error(t.Exception, "Error during command forwarding"), TaskContinuationOptions.OnlyOnFaulted);
                 }
-                while (true);
                 //The break of the loop is made by close wich raise an exception
             }
             catch (ObjectDisposedException)
@@ -108,24 +111,6 @@
             catch (SocketException)
             {
                 _logger.Debug("Forward command closed");
-            }
-        }
-
-        /// <summary>
-        /// Ends the send command.
-        /// </summary>
-        /// <param name="result">The result.</param>
-        private void EndSendCommand(IAsyncResult result)
-        {
-            try
-            {
-                ForwardCommand.EndSendData(result);
-                byte[] frame = (byte[])result.AsyncState;
-                CommandFrameSended(frame);
-            }
-            catch (Exception error)
-            {
-                _logger.Error(error, "Error during command forwarding");
             }
         }
 
