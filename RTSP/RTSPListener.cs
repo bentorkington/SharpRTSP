@@ -250,15 +250,7 @@
             }
 
             _logger.LogDebug("Send Message\n {message}", message);
-            if (_transport is RtspHttpTransport httpTransport)
-            {
-                byte[] data = message.Prepare();
-                httpTransport.Write(data, 0, data.Length);
-            }
-            else
-            {
-                message.SendTo(_stream);
-            }
+            message.SendTo(_stream);
             return true;
         }
 

@@ -229,17 +229,6 @@
         }
 
         /// <summary>
-        /// Equivalent to <see cref="SendTo(Stream)"/> but without a stream, just a byte[] array to return
-        /// </summary>
-        /// <returns></returns>
-        public byte[] Prepare()
-        {
-            MemoryStream ms = new();
-            SendTo(ms);
-            return ms.ToArray();
-        }
-
-        /// <summary>
         /// Create a string of the message for debug.
         /// </summary>
         public override string ToString()
