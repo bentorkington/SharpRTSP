@@ -257,7 +257,7 @@
         /// <summary>
         /// Reconnect this instance of RtspListener.
         /// </summary>
-        /// <exception cref="System.Net.Sockets.SocketException">Error during socket </exception>
+        /// <exception cref="SocketException">Error during socket </exception>
         public void Reconnect()
         {
             //if it is already connected do not reconnect
@@ -440,7 +440,6 @@
 
             if (_cancelationTokenSource is null)
                 throw new InvalidOperationException("Listener is not started");
-
             Contract.EndContractBlock();
 
             if (!_transport.Connected)

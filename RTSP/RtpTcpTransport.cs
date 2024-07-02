@@ -1,5 +1,6 @@
 ﻿using Rtsp.Messages;
 using System;
+using System.Threading.Tasks;
 
 namespace Rtsp
 {
@@ -21,15 +22,13 @@ namespace Rtsp
             this.rtspListener = rtspListener;
         }
 
-        public void WriteToControlPort(ReadOnlySpan<byte> data)
-        {
-            rtspListener.SendData(ControlChannel, data);
-        }
+        public void WriteToControlPort(ReadOnlySpan<byte> data) => rtspListener.SendData(ControlChannel, data);
 
-        public void WriteToDataPort(ReadOnlySpan<byte> data)
-        {
-            rtspListener.SendData(DataChannel, data);
-        }
+        public Task WriteToControlAsync(ReadOnlyMemory<byte> data) => rtspListener.SendDataAsync(ControlChannel, data);
+
+        public void WriteToDataPort(ReadOnlySpan<byte> data) => rtspListener.SendData(DataChannel, data);
+
+        public Task WriteToDataPortAsync(ReadOnlyMemory<byte> data) => rtspListener.SendDataAsync(DataChannel, data);
 
         protected virtual void Dispose(bool disposing)
         {

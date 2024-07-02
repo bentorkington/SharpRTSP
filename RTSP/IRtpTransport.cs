@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace Rtsp
 {
@@ -9,7 +10,19 @@ namespace Rtsp
 
         void Start();
         void Stop();
+        
+        /// <summary>
+        /// Write to the RTP Control Port
+        /// </summary>
+        /// <param name="data">Buffer to send</param>
         void WriteToControlPort(ReadOnlySpan<byte> data);
+        Task WriteToControlAsync(ReadOnlyMemory<byte> data);
+
+        /// <summary>
+        /// Write to the RTP Data Port
+        /// </summary>
+        /// <param name="data">Buffer to send</param>
         void WriteToDataPort(ReadOnlySpan<byte> data);
+        Task WriteToDataPortAsync(ReadOnlyMemory<byte> data);
     }
 }

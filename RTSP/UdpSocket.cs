@@ -182,23 +182,14 @@ namespace Rtsp
             _controlEndPoint = new IPEndPoint(adresses[0], port);
         }
 
-        /// <summary>
-        /// Write to the RTP Data Port
-        /// </summary>
-        /// <param name="data">Buffer to send</param>
-        public void WriteToDataPort(ReadOnlySpan<byte> data)
-        {
-            dataSocket.Send(data, _dataEndPoint);
-        }
+        public void WriteToControlPort(ReadOnlySpan<byte> data) => controlSocket.Send(data, _controlEndPoint);
 
-        /// <summary>
-        /// Write to the RTP Control Port
-        /// </summary>
-        /// <param name="data">Buffer to send</param>
-        public void WriteToControlPort(ReadOnlySpan<byte> data)
-        {
-            controlSocket.Send(data, _controlEndPoint);
-        }
+        public async Task WriteToControlAsync(ReadOnlyMemory<byte> data) => await controlSocket.SendAsync(data, _controlEndPoint);
+
+        public void WriteToDataPort(ReadOnlySpan<byte> data) => dataSocket.Send(data, _dataEndPoint);
+
+        public async Task WriteToDataPortAsync(ReadOnlyMemory<byte> data) => await dataSocket.SendAsync(data, _dataEndPoint);
+
 
         protected virtual void Dispose(bool disposing)
         {
@@ -218,5 +209,7 @@ namespace Rtsp
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+
     }
 }
