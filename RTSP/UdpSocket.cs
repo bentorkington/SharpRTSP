@@ -184,12 +184,11 @@ namespace Rtsp
 
         public void WriteToControlPort(ReadOnlySpan<byte> data) => controlSocket.Send(data, _controlEndPoint);
 
-        public async Task WriteToControlAsync(ReadOnlyMemory<byte> data) => await controlSocket.SendAsync(data, _controlEndPoint);
+        public Task WriteToControlAsync(ReadOnlyMemory<byte> data) => controlSocket.SendAsync(data, _controlEndPoint).AsTask();
 
         public void WriteToDataPort(ReadOnlySpan<byte> data) => dataSocket.Send(data, _dataEndPoint);
 
-        public async Task WriteToDataPortAsync(ReadOnlyMemory<byte> data) => await dataSocket.SendAsync(data, _dataEndPoint);
-
+        public Task WriteToDataPortAsync(ReadOnlyMemory<byte> data) => dataSocket.SendAsync(data, _dataEndPoint).AsTask();
 
         protected virtual void Dispose(bool disposing)
         {
@@ -209,7 +208,5 @@ namespace Rtsp
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
-
-
     }
 }
