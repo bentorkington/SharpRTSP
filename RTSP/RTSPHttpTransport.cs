@@ -16,7 +16,6 @@ namespace Rtsp
         private const int MaxResponseHeadersSize = 8 * 1024;
         private static readonly byte[] DoubleCrlfBytes = "\r\n\r\n"u8.ToArray();
 
-
         private class HttpTransportStream : Stream
         {
             private readonly Stream _inStream;
@@ -101,7 +100,6 @@ namespace Rtsp
 
                     string request = _parent.ComposePostRequest(_sessionCookie, base64CommandBytes);
                     byte[] requestBytes = Encoding.ASCII.GetBytes(request);
-
 
                     _outClient.GetStream().Write(requestBytes);
                     _outClient.GetStream().Write(base64CommandBytes);
@@ -211,7 +209,6 @@ namespace Rtsp
                 retry++;
             }
             while (!_stream.Open() && retry < 2);
-
         }
 
         protected virtual void Dispose(bool disposing)

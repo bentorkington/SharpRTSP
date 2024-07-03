@@ -20,8 +20,6 @@
             ForwardInterleavedCommand = -1;
         }
 
-
-
         /// <summary>
         /// Gets or sets the forward command port.
         /// </summary>
@@ -37,7 +35,6 @@
         /// </summary>
         /// <value>The forward interleaved command.</value>
         public int ForwardInterleavedCommand { get; set; }
-
 
         /// <summary>
         /// Starts this instance.
@@ -137,7 +134,6 @@
             }
             catch (Exception error)
             {
-
                 _logger.Warn(error, "Error during frame forwarding");
             }
         }

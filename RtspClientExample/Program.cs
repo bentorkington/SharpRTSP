@@ -26,7 +26,7 @@ namespace RtspClientExample
             // IPS IP Camera Tests
             //String url = "rtsp://192.168.1.128/ch1.h264";
 
-            string url = "rtsp://192.168.0.89/media/video2";
+            // string url = "rtsp://192.168.0.89/media/video2";
 
             // string url = "http://192.168.3.72/profile1/media.smp";
 
@@ -34,7 +34,7 @@ namespace RtspClientExample
             // string url = "rtsp://192.168.3.72/ProfileG/Recording-1/recording/play.smp";
 
             string username = "admin";
-            string password = "Admin123!";
+            string password = "admin";
             // Axis Tests
             //String url = "rtsp://192.168.1.125/onvif-media/media.amp?profile=quality_h264";
             //String url = "rtsp://user:password@192.168.1.102/onvif-media/media.amp?profile=quality_h264";
@@ -62,6 +62,7 @@ namespace RtspClientExample
 
             // Happytime RTSP Server
             //string url = "rtsp://127.0.0.1/screenlive";
+            string url = "http://127.0.0.1:8044/screenlive";
 
             // MJPEG Tests (Payload 26)
             //String url = "rtsp://192.168.1.125/onvif-media/media.amp?profile=mobile_jpeg";

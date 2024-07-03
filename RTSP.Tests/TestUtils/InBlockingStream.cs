@@ -22,10 +22,7 @@ namespace RTSP.Tests.TestUtils
 
         public override long Position { get => throw new NotSupportedException("Simulate NetworkStream"); set => throw new NotSupportedException("Simulate NetworkStream"); }
 
-        public override void Flush()
-        {
-
-        }
+        public override void Flush() { }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
@@ -52,7 +49,7 @@ namespace RTSP.Tests.TestUtils
 
         protected override void Dispose(bool disposing)
         {
-            if(disposing)
+            if (disposing)
             {
                 cancellationTokenSource.Cancel();
                 cancellationTokenSource.Dispose();

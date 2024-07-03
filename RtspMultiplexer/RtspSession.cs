@@ -10,7 +10,6 @@
     {
         private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
-
         public RtspSession()
         {
             State = SessionState.Init;
@@ -68,7 +67,7 @@
             if (!_clientList.Contains(clientAddress))
                 _clientList.Add(clientAddress);
 
-            if (_timeoutThread != null && _timeoutThread.IsAlive)
+            if (_timeoutThread?.IsAlive == true)
             {
                 _logger.Debug("Session: {0} was already running", Name);
                 return;
@@ -76,13 +75,12 @@
 
             foreach (var item in ListOfForwader)
             {
-                item.Value.CommandReceive += new EventHandler(CommandReceive);
+                item.Value.CommandReceive += CommandReceive;
                 item.Value.Start();
             }
             _timeoutThread = new Thread(new ThreadStart(TimeoutDetecter));
             _stoping = false;
             _timeoutThread.Start();
-
         }
 
         /// <summary>
@@ -102,7 +100,6 @@
                 // if we are here we timeOut
                 _logger.Warn("Session {0} timeout", Name);
                 TearDown();
-
             }
         }
 
@@ -130,14 +127,13 @@
                 Stop();
         }
 
-
         private void Stop()
         {
             _logger.Info("Stopping session: {0} ", Name);
 
             foreach (var item in ListOfForwader)
             {
-                item.Value.CommandReceive -= new EventHandler(CommandReceive);
+                item.Value.CommandReceive -= CommandReceive;
                 item.Value.Stop();
             }
 
@@ -151,9 +147,9 @@
             _dataReceive.Set();
         }
 
-        internal void Handle(RtspRequest request)
+        internal void Handle(RtspRequest _)
         {
-            CommandReceive(this, new EventArgs());
+            CommandReceive(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -196,11 +192,8 @@
                 ListOfForwader.Remove(uri);
             }
 
-
             ListOfForwader.Add(uri, forwarder);
         }
-
-
 
         /// <summary>
         /// Gets or sets the destination name of the current session..

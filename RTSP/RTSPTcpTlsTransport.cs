@@ -36,11 +36,10 @@ namespace Rtsp
         /// <returns>A stream</returns>
         public override Stream GetStream()
         {
-            var sslStream = new SslStream(base.GetStream(), true, _userCertificateSelectionCallback);
+            var sslStream = new SslStream(base.GetStream(), leaveInnerStreamOpen: true, _userCertificateSelectionCallback);
 
             sslStream.AuthenticateAsClient(RemoteAddress);
             return sslStream;
         }
-
     }
 }

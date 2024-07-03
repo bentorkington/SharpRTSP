@@ -600,7 +600,6 @@ namespace RtspClientExample
                             if (isVideoChannel)
                             {
                                 videoRtpTransport = new MulticastUDPSocket(multicastAddress, videoDataChannel.Value, multicastAddress, videoRtcpChannel.Value);
-
                             }
                             else if (isAudioChannel)
                             {
@@ -742,7 +741,6 @@ namespace RtspClientExample
                         && (((fmtpPayloadNumber > -1 && rtpmap.PayloadNumber == fmtpPayloadNumber) || fmtpPayloadNumber == -1)
                         && rtpmap.EncodingName != null))
                     {
-
                         // found a valid codec
                         payloadName = rtpmap.EncodingName.ToUpper();
                         videoPayloadProcessor = payloadName switch

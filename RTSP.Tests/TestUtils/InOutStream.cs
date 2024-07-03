@@ -8,7 +8,6 @@ namespace RTSP.Tests.TestUtils
         public required Stream In { get; init; }
         public required Stream Out { get; init; }
 
-
         public override bool CanRead => In.CanRead;
 
         public override bool CanSeek => false;

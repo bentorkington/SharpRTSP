@@ -11,7 +11,6 @@
     {
         private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
-
         private readonly UdpClient _listenVUdpPort;
         private readonly UdpClient _forwarCUdpPort;
         private Thread _forwardVThread;
@@ -66,7 +65,6 @@
             {
                 throw new InvalidOperationException("Forwarder was stopped, can't restart it");
             }
-
 
             _forwardVThread = new Thread(new ThreadStart(DoVideoJob));
             _forwardVThread.Start();
@@ -145,7 +143,6 @@
         /// </summary>
         private void DoVideoJob()
         {
-
             // TODO think if we must set ip address to something else than Any
             IPEndPoint orginalIPEndPoint = new(IPAddress.Any, SourcePortVideo);
             _logger.Debug("Forward from {0} => {1}:{2}", ListenVideoPort, ForwardHostVideo, ForwardPortVideo);
@@ -171,7 +168,6 @@
             }
         }
 
-
         /// <summary>
         /// Ends the send video.
         /// </summary>
@@ -190,8 +186,6 @@
             }
         }
 
-
-
         /// <summary>
         /// Does the command job.
         /// </summary>
@@ -205,7 +199,6 @@
                 IPAddress multicastAdress = IPAddress.Parse(ForwardHostVideo);
                 ListenCUdpPort.JoinMulticastGroup(multicastAdress);
                 _logger.Debug("Forward Command from multicast  {0}:{1} => {2}:{3}", ForwardHostVideo, ListenCommandPort, ForwardHostCommand, ForwardPortCommand);
-
             }
             else
             {
