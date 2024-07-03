@@ -491,10 +491,7 @@
             data[2] = (byte)((frame.Length & 0xFF00) >> 8);
             data[3] = (byte)(frame.Length & 0x00FF);
             frame.CopyTo(data.AsSpan(4));
-            lock (_stream)
-            {
-                _stream.Write(data, 0, packetLength);
-            }
+            _stream.Write(data, 0, packetLength);
             ArrayPool<byte>.Shared.Return(data);
         }
 
