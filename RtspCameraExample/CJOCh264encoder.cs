@@ -24,7 +24,6 @@ namespace RtspCameraExample
 
         public byte[]? sps;
         public byte[]? pps;
-        public byte[]? nal;
 
         /*!Set the used Y macroblock size for I PCM in YUV420p */
         private const int MACROBLOCK_Y_WIDTH = 16;
@@ -221,7 +220,7 @@ namespace RtspCameraExample
          */
 
         //Creates & saves a macroblock (coded INTRA 16x16)
-        private void CreateMacroblock(int nYpos, int nXpos, Span<byte> frameBuffer)
+        private void CreateMacroblock(int nYpos, int nXpos, ReadOnlySpan<byte> frameBuffer)
         {
             CreateMacroblockHeader();
 
@@ -326,7 +325,7 @@ namespace RtspCameraExample
 
         //! It codes the frame that is in frame memory a it saves the coded data to disc
         //Codifies & save the video frame (it only uses 16x16 intra PCM -> NO COMPRESSION!)
-        public void CodeAndSaveFrame(Span<byte> frameBuffer)
+        public ReadOnlySpan<byte> CodeAndSaveFrame(ReadOnlySpan<byte> frameBuffer)
         {
             baseStream.SetLength(0);
 
@@ -349,7 +348,7 @@ namespace RtspCameraExample
 
             // flush
             stream.Flush();
-            nal = baseStream.ToArray();
+            return baseStream.GetBuffer().AsSpan(0, (int)baseStream.Length);
         }
 
         //! Returns number of coded frames

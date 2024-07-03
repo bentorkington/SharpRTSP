@@ -40,8 +40,8 @@ namespace RtspCameraExample
             private readonly string username = "user";      // or use NUL if there is no username
             private readonly string password = "password";  // or use NUL if there is no password
 
-            private readonly int width = 1280; // 192;
-            private readonly int height = 1024; // 128;
+            private readonly int width =  192;
+            private readonly int height = 128;
             private readonly uint fps = 25;
 
             public Demo(ILoggerFactory loggerFactory)
@@ -116,7 +116,7 @@ namespace RtspCameraExample
             private void Video_source_ReceivedYUVFrame(uint timestamp_ms, int width, int height, Span<byte> yuv_data)
             {
                 // Compress the YUV and feed into the RTSP Server
-                byte[] raw_video_nal = h264Encoder.CompressFrame(yuv_data);
+                var raw_video_nal = h264Encoder.CompressFrame(yuv_data);
                 const bool isKeyframe = true; // the Simple/Tiny H264 Encoders only return I-Frames for every video frame.
 
                 // Put the NALs into a List
@@ -135,7 +135,7 @@ namespace RtspCameraExample
                 }
 
                 // add the rest of the NALs
-                nal_array.Add(raw_video_nal);
+                nal_array.Add(raw_video_nal.ToArray());
 
                 // Pass the NAL array into the RTSP Server
                 rtspServer.FeedInRawSPSandPPS(raw_sps, raw_pps);

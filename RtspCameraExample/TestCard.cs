@@ -31,7 +31,7 @@ public class TestCard
     private int fps = 0;
     private int width = 0;
     private int height = 0;
-    private Object generate_lock = new Object();
+    private readonly object generate_lock = new();
     private long frame_count = 0;
 
     private System.Timers.Timer audio_timer;
