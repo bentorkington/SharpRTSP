@@ -184,7 +184,7 @@ namespace Rtsp
 
         public void WriteToControlPort(ReadOnlySpan<byte> data) => controlSocket.Send(data, _controlEndPoint);
 
-        public Task WriteToControlAsync(ReadOnlyMemory<byte> data) => controlSocket.SendAsync(data, _controlEndPoint).AsTask();
+        public Task WriteToControlPortAsync(ReadOnlyMemory<byte> data) => controlSocket.SendAsync(data, _controlEndPoint).AsTask();
 
         public void WriteToDataPort(ReadOnlySpan<byte> data) => dataSocket.Send(data, _dataEndPoint);
 

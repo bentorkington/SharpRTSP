@@ -16,7 +16,7 @@ namespace Rtsp
         /// </summary>
         /// <param name="data">Buffer to send</param>
         void WriteToControlPort(ReadOnlySpan<byte> data);
-        Task WriteToControlAsync(ReadOnlyMemory<byte> data);
+        Task WriteToControlPortAsync(ReadOnlyMemory<byte> data);
 
         /// <summary>
         /// Write to the RTP Data Port

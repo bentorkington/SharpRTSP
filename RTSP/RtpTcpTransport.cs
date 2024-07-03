@@ -24,7 +24,7 @@ namespace Rtsp
 
         public void WriteToControlPort(ReadOnlySpan<byte> data) => rtspListener.SendData(ControlChannel, data);
 
-        public Task WriteToControlAsync(ReadOnlyMemory<byte> data) => rtspListener.SendDataAsync(ControlChannel, data);
+        public Task WriteToControlPortAsync(ReadOnlyMemory<byte> data) => rtspListener.SendDataAsync(ControlChannel, data);
 
         public void WriteToDataPort(ReadOnlySpan<byte> data) => rtspListener.SendData(DataChannel, data);
 
