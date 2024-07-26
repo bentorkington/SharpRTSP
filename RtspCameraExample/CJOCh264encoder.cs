@@ -61,13 +61,10 @@ namespace RtspCameraExample
             \param nImH Frame height in pixels
             \param nMbW macroblock width in pixels
             \param nMbH macroblock height in pixels
-            \param nFps frames x second (tipical values are: 25, 30, 50, etc)
-            \param nSARw Indicates the horizontal size of the sample aspect ratio (tipical values are:1, 4, 16, etc)
-            \param nSARh Indicates the vertical size of the sample aspect ratio (tipical values are:1, 3, 9, etc)
          */
 
         //Creates and saves the NAL SPS (including VUI) (one per file)
-        private void CreateSps(int nImW, int nImH, int nMbW, int nMbH, uint nFps, uint nSARw, uint nSARh)
+        private void CreateSps(int nImW, int nImH, int nMbW, int nMbH)
         {
             stream.Add4BytesNoEmulationPrevention(0x000001); // NAL header
             stream.AddBits(0x0, 1); // forbidden_bit
@@ -260,7 +257,6 @@ namespace RtspCameraExample
         {
             m_lNumFramesAdded = 0;
             stream = new CJOCh264bitstream(baseStream);
-            m_nFps = 25;
         }
 
         //! Initializes the coder
@@ -309,10 +305,9 @@ namespace RtspCameraExample
                     throw new Exception("Error: size not allowed. Only multiples of macroblock are allowed (macroblock size is: 16x16)");
                 }
             }
-            m_nFps = nImFps;
 
             //Create h264 SPS & PPS
-            CreateSps(frame.nYwidth, frame.nYheight, frame.nYmbwidth, frame.nYmbheight, nImFps, nSARw, nSARh);
+            CreateSps(frame.nYwidth, frame.nYheight, frame.nYmbwidth, frame.nYmbheight);
             stream.Flush(); // Flush data to the List<byte>
             sps = baseStream.ToArray();
             baseStream.SetLength(0);
