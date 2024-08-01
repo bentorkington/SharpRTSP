@@ -27,6 +27,7 @@ public class RTSPListenerIntegrationTests
     [TestCase("rtsp://localhost:8554/Test")]
     [TestCase("rtsps://localhost:8322/Test")]
     [Category("Integration")]
+    [Explicit("These tests require a running RTSP server and are not suitable for CI pipelines")]
     public async Task SendOption_WhenSent_Receives200OK(string uri)
     {
         // arrange
