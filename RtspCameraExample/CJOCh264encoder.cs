@@ -46,9 +46,6 @@ namespace RtspCameraExample
         /*! The frame var*/
         private readonly Frame frame = new();
 
-        /*! The frames per second var*/
-        private uint m_nFps;
-
         /*! Number of frames sent to the output */
         private uint m_lNumFramesAdded;
         private bool disposedValue;
