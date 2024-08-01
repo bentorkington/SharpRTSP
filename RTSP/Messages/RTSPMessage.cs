@@ -60,7 +60,6 @@
         /// </summary>
         public RtspMessage()
         {
-            Creation = DateTime.Now;
         }
 
         protected internal string[] commandArray = [string.Empty];
@@ -69,7 +68,7 @@
         /// Gets or sets the creation time.
         /// </summary>
         /// <value>The creation time.</value>
-        public DateTime Creation { get; }
+        public DateTime Creation { get; } = DateTime.UtcNow;
 
         /// <summary>
         /// Gets or sets the command of the message (first line).
@@ -126,7 +125,7 @@
         {
             get
             {
-                if (!(Headers.TryGetValue("CSeq", out string? returnStringValue) &&
+                if (!(Headers.TryGetValue(RtspHeaderNames.CSeq, out string? returnStringValue) &&
                     int.TryParse(returnStringValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int returnValue)))
                 {
                     returnValue = 0;
@@ -136,7 +135,7 @@
             }
             set
             {
-                Headers["CSeq"] = value.ToString(CultureInfo.InvariantCulture);
+                Headers[RtspHeaderNames.CSeq] = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
@@ -148,14 +147,14 @@
         {
             get
             {
-                if (!Headers.TryGetValue("Session", out string? value))
+                if (!Headers.TryGetValue(RtspHeaderNames.Session, out string? value))
                     return null;
 
                 return value;
             }
             set
             {
-                Headers["Session"] = value;
+                Headers[RtspHeaderNames.Session] = value;
             }
         }
 
