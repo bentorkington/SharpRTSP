@@ -8,6 +8,8 @@ namespace RtspClientExample
 {
     public static class Program
     {
+        private static ILogger logger = null!;
+
         static void Main()
         {
             var loggerFactory = LoggerFactory.Create(builder =>
@@ -19,6 +21,8 @@ namespace RtspClientExample
                     .AddFilter("Rtsp", LogLevel.Debug)
                     .AddConsole();
             });
+
+            logger = loggerFactory.CreateLogger("Main");
 
             // Internet Test - Big Buck Bunney
             // string url = "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?flavour=hd&namespace=1&service=201";
@@ -89,7 +93,7 @@ namespace RtspClientExample
                         NewMP2Stream(client);
                         break;
                     default:
-                        Console.WriteLine("Unknow Video format" + args.StreamType);
+                        logger.LogWarning("Unknow Video format {streamtype}", args.StreamType);
                         break;
                 }
             };
@@ -111,7 +115,7 @@ namespace RtspClientExample
                         NewAACAudioStream(arg, client);
                         break;
                     default:
-                        Console.WriteLine("Unknow Audio format" + arg.StreamType);
+                        logger.LogWarning("Unknow Audio format {streamtype}", arg.StreamType);
                         break;
                 }
             };
@@ -307,7 +311,7 @@ namespace RtspClientExample
                                 39 => "SEI NAL",
                                 _ => "OTHER NAL",
                             };
-                            Console.WriteLine("NAL Type = " + nal_unit_type + " " + description);
+                            logger.LogInformation("NAL Type = {nal_unit_type} {description}", nal_unit_type, description);
                         }
                         fs_v.Write(nalUnit);
                     }
@@ -345,7 +349,7 @@ namespace RtspClientExample
                             9 => "ACCESS UNIT DELIMITER NAL",
                             _ => "OTHER NAL",
                         };
-                        Console.WriteLine("NAL Ref = " + nal_ref_idc + " NAL Type = " + nal_unit_type + " " + description);
+                        logger.LogInformation("NAL Ref = {nal_ref_idc} NAL Type = {nal_unit_type} {description}", nal_ref_idc, nal_unit_type, description);
                     }
                     fs_v.Write(nalUnit);
                 }
