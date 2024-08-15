@@ -19,7 +19,10 @@ namespace RtspClientExample
                     .AddFilter("System", LogLevel.Warning)
                     .AddFilter("RtspClientExample", LogLevel.Debug)
                     .AddFilter("Rtsp", LogLevel.Debug)
-                    .AddConsole();
+                    .AddSimpleConsole(o =>
+                    {
+                        o.SingleLine = true;
+                    });
             });
 
             logger = loggerFactory.CreateLogger("Main");
