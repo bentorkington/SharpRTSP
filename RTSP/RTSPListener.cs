@@ -1,18 +1,21 @@
-﻿namespace Rtsp
-{
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Logging.Abstractions;
-    using Rtsp.Messages;
-    using System;
-    using System.Buffers;
-    using System.Collections.Generic;
-    using System.Diagnostics.Contracts;
-    using System.IO;
-    using System.Net.Sockets;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Rtsp.Messages;
+using Rtsp.Utils;
+using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.IO.Pipelines;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
+namespace Rtsp
+{
     /// <summary>
     /// Rtsp lister
     /// </summary>
@@ -122,6 +125,7 @@
             try
             {
                 _logger.LogDebug("Connection Open");
+                // var pipe = PipeReader.Create(_stream);
                 while (_transport.Connected && !token.IsCancellationRequested)
                 {
                     // La lectuer est blocking sauf si la connection est coupé
@@ -279,6 +283,121 @@
         }
 
         private readonly List<byte> readOneMessageBuffer = new(256);
+
+        private enum ReadingMessage
+        {
+            NotEnoughtData,
+            PartialMessage,
+            MessageFinish,
+        }
+
+        /// <summary>
+        /// Reads one message.
+        /// </summary>
+        /// <param name="reader">The Rtsp stream pipereader.</param>
+        /// <returns>Message readen</returns>
+        public async Task<RtspChunk?> ReadOneMessageAsync(PipeReader reader, CancellationToken token = default)
+        {
+            if (reader == null)
+                throw new ArgumentNullException(nameof(reader));
+
+            ReadingMessage currentReadingState = ReadingMessage.NotEnoughtData;
+            RtspChunk? currentMessage = null;
+
+            while (currentReadingState != ReadingMessage.MessageFinish)
+            {
+                var result = await reader.ReadAsync(token).ConfigureAwait(false);
+                var buffer = result.Buffer;
+                try
+                {
+                    currentReadingState = TryReadMessage(ref buffer, ref currentMessage);
+                    if (result.IsCompleted)
+                        break;
+                }
+                finally
+                {
+                    if (currentReadingState != ReadingMessage.NotEnoughtData)
+                    {
+                        reader.AdvanceTo(buffer.Start, buffer.Start);
+                    }
+                    else
+                    {
+                        reader.AdvanceTo(buffer.Start, buffer.End);
+                    }
+                }
+            }
+            if (currentMessage != null)
+                currentMessage.SourcePort = this;
+            return currentMessage;
+        }
+
+        private ReadingMessage TryReadMessage(ref ReadOnlySequence<byte> buffer, ref RtspChunk? currentMessage)
+        {
+            if (currentMessage is null && buffer.First.Length > 0 && buffer.First.Span[0] == '$')
+            {
+                if (buffer.Length < 4) return ReadingMessage.NotEnoughtData;
+
+                var channel = buffer.First.Span[1];
+                var size = BinaryPrimitives.ReadUInt16BigEndian(buffer.First.Span[2..]);
+                if (buffer.Length < size + 4)
+                    return ReadingMessage.NotEnoughtData;
+
+                var reservedData = _memoryPool.Rent(size);
+                currentMessage = new RtspData(reservedData, size)
+                {
+                    Channel = channel,
+                };
+                buffer.Slice(4, size).CopyTo(reservedData.Memory.Span);
+                buffer = buffer.Slice(size + 4);
+                return ReadingMessage.MessageFinish;
+            }
+
+            if (currentMessage?.Data.IsEmpty == false)
+            {
+                if (buffer.Length > currentMessage.Data.Length)
+                {
+                    buffer.CopyTo(currentMessage.Data.Span);
+                    buffer = buffer.Slice(currentMessage.Data.Length);
+                    return ReadingMessage.MessageFinish;
+                }
+                return ReadingMessage.NotEnoughtData;
+            }
+
+            var pos = buffer.FindEndOfLine();
+            if (!pos.HasValue)
+            {
+                return ReadingMessage.NotEnoughtData;
+            }
+            var (endOfLinePos, startOfNextLinePos) = pos.Value;
+
+            // convert to line
+            var bufferLine = buffer.Slice(0, endOfLinePos);
+#if NET5_0_OR_GREATER
+            var line = Encoding.UTF8.GetString(bufferLine);
+#else
+            // not optimal, need to add the correct version to polyfill
+            var line = bufferLine.IsSingleSegment ? Encoding.UTF8.GetString(bufferLine.First.Span) : Encoding.UTF8.GetString(bufferLine.ToArray());
+#endif
+            bool messageIsFinished = false;
+            if (currentMessage is null)
+            {
+                currentMessage = RtspMessage.GetRtspMessage(line);
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(line))
+                {
+                    ((RtspMessage)currentMessage).InitialiseDataFromContentLength();
+                    messageIsFinished = currentMessage.Data.Length == 0;
+                }
+                else
+                {
+                    ((RtspMessage)currentMessage).AddHeader(line);
+                }
+            }
+            buffer = buffer.Slice(startOfNextLinePos);
+            return messageIsFinished ? ReadingMessage.MessageFinish : ReadingMessage.PartialMessage;
+        }
 
         /// <summary>
         /// Reads one message.
