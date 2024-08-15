@@ -22,8 +22,10 @@ namespace Rtsp.Onvif
 
         private static string Seek(DateTime dt) => FormattableString.Invariant($"{dt:yyyyMMdd}T{dt:HHmmss}");
 
-        // Here we can add other methods to add header like Require: onvif-replay
-
+        /// <summary>
+        /// Add the Require: onvif-replay header to the message for ONVIF compatibility
+        /// </summary>
+        /// <param name="message">Message to modify</param>
         public static void AddRequireOnvifRequest(this RtspMessage message)
         {
             if (!message.Headers.ContainsKey(RtspHeaderNames.Require))
@@ -32,6 +34,11 @@ namespace Rtsp.Onvif
             }
         }
 
+        /// <summary>
+        /// Add the Rate-Control header to the message for ONVIF replay compatibility
+        /// </summary>
+        /// <param name="message">Message to modify</param>
+        /// <param name="rateControl">is rate controled by server, see onvif specification</param>
         public static void AddRateControlOnvifRequest(this RtspMessage message, bool rateControl)
         {
             if (!message.Headers.ContainsKey(RtspHeaderNames.RateControl))

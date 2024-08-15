@@ -52,10 +52,7 @@
         /// <value>
         /// 	<c>true</c> if this instance has second port; otherwise, <c>false</c>.
         /// </value>
-        public bool IsSecondPortPresent
-        {
-            get { return Second != 0; }
-        }
+        public bool IsSecondPortPresent => Second != 0;
 
         /// <summary>
         /// Parses the int values of port.

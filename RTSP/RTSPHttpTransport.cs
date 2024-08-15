@@ -149,7 +149,7 @@ namespace Rtsp
 
             protected override void Dispose(bool disposing)
             {
-                if(disposing)
+                if (disposing)
                 {
                     _inStream.Dispose();
                     _outClient?.Dispose();
@@ -225,7 +225,6 @@ namespace Rtsp
 
         public void Dispose()
         {
-            // Ne changez pas ce code. Placez le code de nettoyage dans la méthode 'Dispose(bool disposing)'
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }

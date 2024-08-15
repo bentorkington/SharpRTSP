@@ -4,7 +4,7 @@ using System.IO;
 
 namespace Rtsp
 {
-    static class HeadersParser
+    internal static class HeadersParser
     {
         public static NameValueCollection ParseHeaders(StreamReader headersReader)
         {

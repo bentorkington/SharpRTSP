@@ -10,23 +10,25 @@ namespace Rtsp
     /// </summary>
     public class RtspTcpTlsTransport : RtspTcpTransport
     {
-        private readonly RemoteCertificateValidationCallback? _userCertificateSelectionCallback;
+        private readonly RemoteCertificateValidationCallback? _userCertificateValidationCallback;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RtspTcpTlsTransport"/> class.
         /// </summary>
         /// <param name="tcpConnection">The underlying TCP connection.</param>
-        public RtspTcpTlsTransport(TcpClient tcpConnection, RemoteCertificateValidationCallback? userCertificateSelectionCallback = null) : base(tcpConnection)
+        /// <param name="userCertificateValidationCallback">The user certificate validation callback, <see langword="null"/> if default should be used.</param>
+        public RtspTcpTlsTransport(TcpClient tcpConnection, RemoteCertificateValidationCallback? userCertificateValidationCallback = null) : base(tcpConnection)
         {
-            _userCertificateSelectionCallback = userCertificateSelectionCallback;
+            _userCertificateValidationCallback = userCertificateValidationCallback;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RtspTcpTransport"/> class.
         /// </summary>
         /// <param name="uri">The RTSP uri to connect to.</param>
-        public RtspTcpTlsTransport(Uri uri, RemoteCertificateValidationCallback? userCertificateSelectionCallback)
-            : this(new TcpClient(uri.Host, uri.Port), userCertificateSelectionCallback)
+        /// <param name="userCertificateValidationCallback">The user certificate validation callback, <see langword="null"/> if default should be used.</param>
+        public RtspTcpTlsTransport(Uri uri, RemoteCertificateValidationCallback? userCertificateValidationCallback)
+            : this(new TcpClient(uri.Host, uri.Port), userCertificateValidationCallback)
         {
         }
 
@@ -36,7 +38,7 @@ namespace Rtsp
         /// <returns>A stream</returns>
         public override Stream GetStream()
         {
-            var sslStream = new SslStream(base.GetStream(), leaveInnerStreamOpen: true, _userCertificateSelectionCallback);
+            var sslStream = new SslStream(base.GetStream(), leaveInnerStreamOpen: true, _userCertificateValidationCallback);
 
             sslStream.AuthenticateAsClient(RemoteAddress);
             return sslStream;

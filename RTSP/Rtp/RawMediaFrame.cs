@@ -23,7 +23,6 @@ namespace Rtsp.Rtp
         public required DateTime ClockTimestamp { get; init; }
         public required uint RtpTimestamp { get; init; }
 
-
         public RawMediaFrame(IEnumerable<ReadOnlyMemory<byte>> data, IEnumerable<IMemoryOwner<byte>> owners)
         {
             _data = data;

@@ -8,7 +8,6 @@ namespace Rtsp
     /// </summary>
     public class RtspChunkEventArgs : EventArgs
     {
-
         /// <summary>
         /// Initializes a new instance of the <see cref="RtspChunkEventArgs"/> class.
         /// </summary>

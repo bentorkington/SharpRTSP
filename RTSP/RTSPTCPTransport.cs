@@ -65,7 +65,7 @@ namespace Rtsp
         /// <summary>
         /// Gets a value indicating whether this <see cref="IRtspTransport"/> is connected.
         /// </summary>
-        /// <value><c>true</c> if connected; otherwise, <c>false</c>.</value>
+        /// <value><see langword="true"/> if connected; otherwise, <see langword="false"/>.</value>
         public bool Connected => _RtspServerClient.Client != null && _RtspServerClient.Connected;
 
         /// <summary>
@@ -94,12 +94,6 @@ namespace Rtsp
             if (disposing)
             {
                 _RtspServerClient.Close();
-                /*   // free managed resources
-                   if (managedResource != null)
-                   {
-                       managedResource.Dispose();
-                       managedResource = null;
-                   }*/
             }
         }
     }

@@ -15,6 +15,9 @@ namespace Rtsp
         public int ControlChannel { get; set; } = int.MaxValue;
         public int DataChannel { get; set; } = int.MaxValue;
 
+        /// <summary>
+        /// Get the control and data channels numbers
+        /// </summary>
         public PortCouple Channels => new(DataChannel, ControlChannel);
 
         public RtpTcpTransport(RtspListener rtspListener)

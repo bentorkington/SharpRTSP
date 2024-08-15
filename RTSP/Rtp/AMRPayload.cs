@@ -5,9 +5,9 @@ using System.Collections.Generic;
 
 namespace Rtsp.Rtp
 {
-    // This class handles the AMR Payload
-    // It has methods to process the RTP Payload
-
+    /// <summary>
+    /// This class handles the AMR Payload
+    /// </summary>
     public class AMRPayload : IPayloadProcessor
     {
         private readonly MemoryPool<byte> _memoryPool;

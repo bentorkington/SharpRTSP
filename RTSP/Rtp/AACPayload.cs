@@ -74,7 +74,6 @@ namespace Rtsp.Rtp
         {
             _memoryPool = memoryPool ?? MemoryPool<byte>.Shared;
 
-
             /* 
             Format of config string  
             https://wiki.multimedia.cx/index.php/MPEG-4_Audio#Audio_Specific_Config
