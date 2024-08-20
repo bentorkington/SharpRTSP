@@ -62,6 +62,7 @@ namespace RtspClientExample
         // Used with RTSP keepalive
         bool serverSupportsGetParameter = false;
         System.Timers.Timer? keepaliveTimer = null;
+        bool _lastMessageWasKeepalive = false;
 
         IPayloadProcessor? videoPayloadProcessor = null;
         IPayloadProcessor? audioPayloadProcessor = null;
@@ -490,7 +491,8 @@ namespace RtspClientExample
                 _logger.LogDebug("Got Error in RTSP Reply {returnCode} {returnMessage}", message.ReturnCode, message.ReturnMessage);
 
                 if (message.ReturnCode == 401
-                    && message.OriginalRequest?.Headers.ContainsKey(RtspHeaderNames.Authorization) == true)
+                    && message.OriginalRequest?.Headers.ContainsKey(RtspHeaderNames.Authorization) == true
+                    && _lastMessageWasKeepalive == false)
                 {
                     // the authorization failed.
                     _logger.LogError("Fail to authenticate stoping here");
@@ -520,6 +522,7 @@ namespace RtspClientExample
                 }
                 return;
             }
+            _lastMessageWasKeepalive = false;
 
             // If we get a reply to OPTIONS then start the Keepalive Timer and send DESCRIBE
             if (message.OriginalRequest is RtspRequestOptions)
@@ -981,6 +984,12 @@ namespace RtspClientExample
             // RFC 2326 (RTSP Standard) says "GET_PARAMETER with no entity body may be used to test client or server liveness("ping")"
 
             // This code uses GET_PARAMETER (unless OPTIONS report it is not supported, and then it sends OPTIONS as a keepalive)
+
+            // The server may send a new nonce after a time, which will cause our keepalives to return a 401
+            // error. We set this flag so that the client will reauthenticate a failed keepalive.
+            // The Axis M5525 Camera has been observed to send a new nonce every 150 seconds.
+
+            _lastMessageWasKeepalive = true;
 
             RtspRequest keepAliveMessage =
                     serverSupportsGetParameter
