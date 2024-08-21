@@ -492,7 +492,7 @@ namespace RtspClientExample
 
                 if (message.ReturnCode == 401
                     && message.OriginalRequest?.Headers.ContainsKey(RtspHeaderNames.Authorization) == true
-                    && _lastMessageWasKeepalive == false)
+                    && !_lastMessageWasKeepalive)
                 {
                     // the authorization failed.
                     _logger.LogError("Fail to authenticate stoping here");
