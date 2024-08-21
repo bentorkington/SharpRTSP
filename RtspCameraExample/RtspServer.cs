@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Rtsp;
 using Rtsp.Messages;
+using Rtsp.Rtp;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -684,15 +685,15 @@ namespace RtspCameraExample
                     const bool rtpHasExtension = false;
                     const int rtp_csrc_count = 0;
 
-                    RTPPacketUtil.WriteHeader(rtp_packet.Span,
-                        RTPPacketUtil.RTP_VERSION,
+                    RtpPacketUtil.WriteHeader(rtp_packet.Span,
+                        RtpPacketUtil.RTP_VERSION,
                         rtpPadding,
                         rtpHasExtension, rtp_csrc_count, last_nal, video_payload_type);
 
-                    RTPPacketUtil.WriteSequenceNumber(rtp_packet.Span, videoSequenceNumber++);
-                    RTPPacketUtil.WriteSSRC(rtp_packet.Span, global_ssrc);
+                    RtpPacketUtil.WriteSequenceNumber(rtp_packet.Span, videoSequenceNumber++);
+                    RtpPacketUtil.WriteSSRC(rtp_packet.Span, global_ssrc);
 
-                    RTPPacketUtil.WriteTS(rtp_packet.Span, rtp_timestamp);
+                    RtpPacketUtil.WriteTimestamp(rtp_packet.Span, rtp_timestamp);
 
                     // Now append the raw NAL
                     raw_nal.CopyTo(rtp_packet[12..]);
@@ -734,12 +735,12 @@ namespace RtspCameraExample
                         const bool rtpHasExtension = false;
                         const int rtp_csrc_count = 0;
 
-                        RTPPacketUtil.WriteHeader(rtp_packet.Span, RTPPacketUtil.RTP_VERSION,
+                        RtpPacketUtil.WriteHeader(rtp_packet.Span, RtpPacketUtil.RTP_VERSION,
                             rtpPadding, rtpHasExtension, rtp_csrc_count, last_nal && end_bit == 1, video_payload_type);
 
-                        RTPPacketUtil.WriteSequenceNumber(rtp_packet.Span, videoSequenceNumber++);
-                        RTPPacketUtil.WriteSSRC(rtp_packet.Span, global_ssrc);
-                        RTPPacketUtil.WriteTS(rtp_packet.Span, rtp_timestamp);
+                        RtpPacketUtil.WriteSequenceNumber(rtp_packet.Span, videoSequenceNumber++);
+                        RtpPacketUtil.WriteSSRC(rtp_packet.Span, global_ssrc);
+                        RtpPacketUtil.WriteTimestamp(rtp_packet.Span, rtp_timestamp);
 
                         // Now append the Fragmentation Header (with Start and End marker) and part of the raw_nal
                         const byte f_bit = 0;
@@ -806,12 +807,12 @@ namespace RtspCameraExample
             int rtp_csrc_count = 0;
             const bool rtpMarker = true; // always 1 as this is the last (and only) RTP packet for this audio timestamp
 
-            RTPPacketUtil.WriteHeader(rtp_packet.Span,
-                RTPPacketUtil.RTP_VERSION, rtp_padding, rtpHasExtension, rtp_csrc_count, rtpMarker, audio_payload_type);
+            RtpPacketUtil.WriteHeader(rtp_packet.Span,
+                RtpPacketUtil.RTP_VERSION, rtp_padding, rtpHasExtension, rtp_csrc_count, rtpMarker, audio_payload_type);
 
-            RTPPacketUtil.WriteSequenceNumber(rtp_packet.Span, audioSequenceNumber++);
-            RTPPacketUtil.WriteSSRC(rtp_packet.Span, global_ssrc);
-            RTPPacketUtil.WriteTS(rtp_packet.Span, rtp_timestamp);
+            RtpPacketUtil.WriteSequenceNumber(rtp_packet.Span, audioSequenceNumber++);
+            RtpPacketUtil.WriteSSRC(rtp_packet.Span, global_ssrc);
+            RtpPacketUtil.WriteTimestamp(rtp_packet.Span, rtp_timestamp);
 
             // Now append the audio packet
             audio_packet.CopyTo(rtp_packet[12..]);

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Rtsp;
 using Rtsp.Messages;
+using Rtsp.Rtp;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
@@ -586,11 +587,11 @@ namespace RtspCameraExample
                 const bool rtpHasExtension = false;
                 const int rtp_csrc_count = 0;
 
-                RTPPacketUtil.WriteHeader(rtp_packet.Span, RTPPacketUtil.RTP_VERSION,
+                RtpPacketUtil.WriteHeader(rtp_packet.Span, RtpPacketUtil.RTP_VERSION,
                     rtpPadding, rtpHasExtension, rtp_csrc_count, endOfFrame, jpegPayloadType);
 
                 // sequence number and SSRC are set just before send
-                RTPPacketUtil.WriteTS(rtp_packet.Span, rtp_timestamp);
+                RtpPacketUtil.WriteTimestamp(rtp_packet.Span, rtp_timestamp);
 
                 int currentDestination = 12;
                 BinaryPrimitives.WriteInt32BigEndian(rtp_packet.Span[currentDestination..], dataPointer & 0x00FFFFFF);
@@ -683,11 +684,11 @@ namespace RtspCameraExample
                     foreach (var rtp_packet in rtp_packets)
                     {
                         // Add the specific data for each transmission
-                        RTPPacketUtil.WriteSequenceNumber(rtp_packet.Span, connection.video.sequenceNumber);
+                        RtpPacketUtil.WriteSequenceNumber(rtp_packet.Span, connection.video.sequenceNumber);
                         connection.video.sequenceNumber++;
 
                         // Add the specific SSRC for each transmission
-                        RTPPacketUtil.WriteSSRC(rtp_packet.Span, connection.ssrc);
+                        RtpPacketUtil.WriteSSRC(rtp_packet.Span, connection.ssrc);
 
                         try
                         {
