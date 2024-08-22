@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using Rtsp;
 using Rtsp.Messages;
-using Rtsp.Sdp;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -567,6 +566,7 @@ namespace RtspCameraExample
                 if (connection.video.must_send_rtcp_packet && !await SendRTCP(rtp_timestamp, connection, connection.video))
                 {
                     RemoveSession(connection);
+                    return;
                 }
 
                 // There could be more than 1 RTP packet (if the data is fragmented)
