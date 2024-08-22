@@ -169,7 +169,8 @@ namespace RtspCameraExample
             Console.WriteLine("RTSP message received " + message);
 
             // Check if the RTSP Message has valid authentication (validating against username,password,realm and nonce)
-            if (auth != null)
+            // skip authentication for OPTIONS for VLC
+            if (auth != null && message is not RtspRequestOptions)
             {
                 if (message.Headers.ContainsKey("Authorization"))
                 {
