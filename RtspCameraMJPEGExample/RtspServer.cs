@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Rtsp;
 using Rtsp.Messages;
+using Rtsp.Rtcp;
 using Rtsp.Rtp;
 using System;
 using System.Buffers;
@@ -658,9 +659,9 @@ namespace RtspCameraExample
                         const bool hasPadding = false;
                         const int reportCount = 0; // an empty report
                         int length = (rtcpSenderReport.Length / 4) - 1; // num 32 bit words minus 1
-                        RTCPUtils.WriteRTCPHeader(rtcpSenderReport, RTCPUtils.RTCP_VERSION, hasPadding, reportCount,
-                            RTCPUtils.RTCP_PACKET_TYPE_SENDER_REPORT, length, connection.ssrc);
-                        RTCPUtils.WriteSenderReport(rtcpSenderReport, now, rtp_timestamp, connection.video.rtp_packet_count, connection.video.octet_count);
+                        RtcpPacketUtil.WriteHeader(rtcpSenderReport, RtcpPacketUtil.RTCP_VERSION, hasPadding, reportCount,
+                            RtcpPacketUtil.RTCP_PACKET_TYPE_SENDER_REPORT, length, connection.ssrc);
+                        RtcpPacketUtil.WriteSenderReport(rtcpSenderReport, now, rtp_timestamp, connection.video.rtp_packet_count, connection.video.octet_count);
 
 
                         try
