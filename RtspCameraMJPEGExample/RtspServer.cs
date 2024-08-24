@@ -523,11 +523,11 @@ namespace RtspCameraExample
                     nbQuantizationTables++;
                     if (nbQuantizationTables == 1)
                     {
-                        firstQuantizationtable = jpegImage[(begin + 4)..(begin + size)];
+                        firstQuantizationtable = jpegImage[(begin + 4)..(begin + 2 + size)];
                     }
                     else if (nbQuantizationTables == 2)
                     {
-                        secondQuantizationtable = jpegImage[(begin + 4)..(begin + size)];
+                        secondQuantizationtable = jpegImage[(begin + 4)..(begin + 2 + size)];
                     }
                     else
                     {
