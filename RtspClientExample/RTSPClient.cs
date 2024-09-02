@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Rtsp;
 using Rtsp.Messages;
 using Rtsp.Onvif;
+using Rtsp.Rtcp;
 using Rtsp.Rtp;
 using Rtsp.Sdp;
 using System;
@@ -387,6 +388,12 @@ namespace RtspClientExample
             if (e.Data.Data.IsEmpty)
                 return;
 
+            if (sender is not IRtpTransport transport)
+            {
+                _logger.LogWarning("No RTP Transport");
+                return;
+            }
+
             _logger.LogDebug("Received a RTCP message ");
 
             // RTCP Packet
@@ -419,7 +426,7 @@ namespace RtspClientExample
 
                 _logger.LogDebug("RTCP Data. PacketType={rtcp_packet_type} SSRC={ssrc}", rtcp_packet_type, rtcp_ssrc);
 
-                if (rtcp_packet_type == 200)
+                if (rtcp_packet_type == RtcpPacketUtil.RTCP_PACKET_TYPE_SENDER_REPORT)
                 {
                     // We have received a Sender Report
                     // Use it to convert the RTP timestamp into the UTC time
@@ -439,7 +446,7 @@ namespace RtspClientExample
                     // This will wrap around in 2036
                     var time = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-                    time = time.AddSeconds((double)ntp_msw_seconds); // adds 'double' (whole&fraction)
+                    time = time.AddSeconds(ntp_msw_seconds); // adds 'double' (whole&fraction)
 
                     _logger.LogDebug("RTCP time (UTC) for RTP timestamp {timestamp} is {time}", rtp_timestamp, time);
 
@@ -447,31 +454,20 @@ namespace RtspClientExample
                     try
                     {
                         byte[] rtcp_receiver_report = new byte[8];
-                        int version = 2;
-                        int paddingBit = 0;
                         int reportCount = 0; // an empty report
-                        int packetType = 201; // Receiver Report
                         int length = (rtcp_receiver_report.Length / 4) - 1; // num 32 bit words minus 1
-                        rtcp_receiver_report[0] = (byte)((version << 6) + (paddingBit << 5) + reportCount);
-                        rtcp_receiver_report[1] = (byte)(packetType);
-                        rtcp_receiver_report[2] = (byte)((length >> 8) & 0xFF);
-                        rtcp_receiver_report[3] = (byte)((length >> 0) & 0XFF);
-                        rtcp_receiver_report[4] = (byte)((ssrc >> 24) & 0xFF);
-                        rtcp_receiver_report[5] = (byte)((ssrc >> 16) & 0xFF);
-                        rtcp_receiver_report[6] = (byte)((ssrc >> 8) & 0xFF);
-                        rtcp_receiver_report[7] = (byte)((ssrc >> 0) & 0xFF);
+                        RtcpPacketUtil.WriteHeader(
+                            rtcp_receiver_report,
+                            RtcpPacketUtil.RTCP_VERSION,
+                            false,
+                            reportCount,
+                            RtcpPacketUtil.RTCP_PACKET_TYPE_RECEIVER_REPORT,
+                            length,
+                            ssrc);
 
-                        if (rtpTransport == RTP_TRANSPORT.TCP)
-                        {
-                            // Send it over via the RTSP connection
-                            // Todo implement
-                            // rtspClient?.SendData(video_rtcp_channel.Value, rtcp_receiver_report);
-                        }
-                        if (rtpTransport == RTP_TRANSPORT.UDP || rtpTransport == RTP_TRANSPORT.MULTICAST)
-                        {
-                            // Send it via a UDP Packet
-                            _logger.LogDebug("TODO - Need to implement RTCP over UDP");
-                        }
+
+                        transport.WriteToControlPort(rtcp_receiver_report);
+
                     }
                     catch
                     {

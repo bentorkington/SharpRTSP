@@ -7,6 +7,7 @@ namespace Rtsp.Rtcp
     {
         public const int RTCP_VERSION = 2;
         public const int RTCP_PACKET_TYPE_SENDER_REPORT = 200;
+        public const int RTCP_PACKET_TYPE_RECEIVER_REPORT = 201;
 
         private static readonly DateTime ntpStartTime = new(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
