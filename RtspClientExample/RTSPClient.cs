@@ -17,6 +17,9 @@ namespace RtspClientExample
 {
     class RTSPClient
     {
+        private class KeepAliveContext() { }
+        private readonly KeepAliveContext keepAliveContext = new();
+
         private readonly ILogger _logger;
         private readonly ILoggerFactory _loggerFactory;
 
@@ -61,8 +64,7 @@ namespace RtspClientExample
 
         // Used with RTSP keepalive
         bool serverSupportsGetParameter = false;
-        System.Timers.Timer? keepaliveTimer = null;
-        bool _lastMessageWasKeepalive = false;
+        private readonly System.Timers.Timer keepaliveTimer;
 
         IPayloadProcessor? videoPayloadProcessor = null;
         IPayloadProcessor? audioPayloadProcessor = null;
@@ -80,6 +82,12 @@ namespace RtspClientExample
         {
             _logger = loggerFactory.CreateLogger<RTSPClient>();
             _loggerFactory = loggerFactory;
+
+            keepaliveTimer = new()
+            {
+                Interval = 20 * 1000,
+            };
+            keepaliveTimer.Elapsed += SendKeepAlive;
         }
 
         public void Connect(string url, string username, string password, RTP_TRANSPORT rtpTransport, MEDIA_REQUEST mediaRequest = MEDIA_REQUEST.VIDEO_AND_AUDIO, bool playbackSession = false)
@@ -299,7 +307,7 @@ namespace RtspClientExample
             rtspClient?.SendMessage(teardown_message);
 
             // Stop the keepalive timer
-            keepaliveTimer?.Stop();
+            keepaliveTimer.Stop();
 
             // clear up any UDP sockets
             videoRtpTransport?.Stop();
@@ -490,9 +498,13 @@ namespace RtspClientExample
             {
                 _logger.LogDebug("Got Error in RTSP Reply {returnCode} {returnMessage}", message.ReturnCode, message.ReturnMessage);
 
+                // The server may send a new nonce after a time, which will cause our keepalives to return a 401
+                // error. We do not fail on keepalive and will reauthenticate a failed keepalive.
+                // The Axis M5525 Camera has been observed to send a new nonce every 150 seconds.
+
                 if (message.ReturnCode == 401
                     && message.OriginalRequest?.Headers.ContainsKey(RtspHeaderNames.Authorization) == true
-                    && !_lastMessageWasKeepalive)
+                    && message.OriginalRequest?.ContextData != keepAliveContext)
                 {
                     // the authorization failed.
                     _logger.LogError("Fail to authenticate stoping here");
@@ -522,40 +534,26 @@ namespace RtspClientExample
                 }
                 return;
             }
-            _lastMessageWasKeepalive = false;
 
             // If we get a reply to OPTIONS then start the Keepalive Timer and send DESCRIBE
-            if (message.OriginalRequest is RtspRequestOptions)
+            if (message.OriginalRequest is RtspRequestOptions && message.OriginalRequest.ContextData != keepAliveContext)
             {
                 // Check the capabilities returned by OPTIONS
                 // The Public: header contains the list of commands the RTSP server supports
                 // Eg   DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, OPTIONS, ANNOUNCE, RECORD, GET_PARAMETER]}
                 var supportedCommand = RTSPHeaderUtils.ParsePublicHeader(message);
                 serverSupportsGetParameter = supportedCommand.Contains("GET_PARAMETER", StringComparer.OrdinalIgnoreCase);
+                // Start a Timer to send an Keepalive RTSP command every 20 seconds
+                keepaliveTimer.Enabled = true;
 
-                if (keepaliveTimer == null)
+                // Send DESCRIBE
+                RtspRequest describe_message = new RtspRequestDescribe
                 {
-                    // Start a Timer to send an Keepalive RTSP command every 20 seconds
-                    keepaliveTimer = new System.Timers.Timer();
-                    keepaliveTimer.Elapsed += SendKeepAlive;
-                    keepaliveTimer.Interval = 20 * 1000;
-                    keepaliveTimer.Enabled = true;
-
-                    // Send DESCRIBE
-                    RtspRequest describe_message = new RtspRequestDescribe
-                    {
-                        RtspUri = _uri,
-                        Headers = { { "Accept", "application/sdp" } },
-                    };
-                    describe_message.AddAuthorization(_authentication, _uri!, rtspSocket!.NextCommandIndex());
-                    rtspClient?.SendMessage(describe_message);
-                }
-                else
-                {
-                    // If the Keepalive Timer was not null, the OPTIONS reply may have come from a Keepalive
-                    // So no need to generate a DESCRIBE message
-                    // do nothing
-                }
+                    RtspUri = _uri,
+                    Headers = { { "Accept", "application/sdp" } },
+                };
+                describe_message.AddAuthorization(_authentication, _uri!, rtspSocket!.NextCommandIndex());
+                rtspClient?.SendMessage(describe_message);
             }
 
             // If we get a reply to DESCRIBE (which was our second command), then prosess SDP and send the SETUP
@@ -572,7 +570,8 @@ namespace RtspClientExample
             {
                 _logger.LogDebug("Got reply from Setup. Session is {session}", message.Session);
 
-                session = message.Session ?? ""; // Session value used with Play, Pause, Teardown and and additional Setups
+                // Session value used with Play, Pause, Teardown and and additional Setups
+                session = message.Session ?? "";
                 if (keepaliveTimer != null && message.Timeout > 0 && message.Timeout > keepaliveTimer.Interval / 1000)
                 {
                     keepaliveTimer.Interval = message.Timeout * 1000 / 2;
@@ -984,13 +983,6 @@ namespace RtspClientExample
             // RFC 2326 (RTSP Standard) says "GET_PARAMETER with no entity body may be used to test client or server liveness("ping")"
 
             // This code uses GET_PARAMETER (unless OPTIONS report it is not supported, and then it sends OPTIONS as a keepalive)
-
-            // The server may send a new nonce after a time, which will cause our keepalives to return a 401
-            // error. We set this flag so that the client will reauthenticate a failed keepalive.
-            // The Axis M5525 Camera has been observed to send a new nonce every 150 seconds.
-
-            _lastMessageWasKeepalive = true;
-
             RtspRequest keepAliveMessage =
                     serverSupportsGetParameter
                     ? new RtspRequestGetParameter
@@ -1003,6 +995,7 @@ namespace RtspClientExample
                         // RtspUri = new Uri(url)
                     };
 
+            keepAliveMessage.ContextData = keepAliveContext;
             keepAliveMessage.AddAuthorization(_authentication, _uri!, rtspSocket!.NextCommandIndex());
             rtspClient?.SendMessage(keepAliveMessage);
         }
