@@ -24,7 +24,7 @@ namespace Rtsp
         private readonly ILogger _logger;
         private readonly MemoryPool<byte> _memoryPool;
         private readonly IRtspTransport _transport;
-        private readonly Dictionary<int, RtspRequest> _sentMessage = [];
+        private readonly SentMessageList _sentMessage = new();
 
         private CancellationTokenSource? _cancelationTokenSource;
         private Task? _mainTask;
@@ -131,45 +131,39 @@ namespace Rtsp
                     // La lectuer est blocking sauf si la connection est coupé
                     RtspChunk? currentMessage = await ReadOneMessageAsync(_stream, token).ConfigureAwait(false);
 
-                    if (currentMessage is not null)
-                    {
-                        if (_logger.IsEnabled(LogLevel.Debug) && currentMessage is not RtspData)
-                        {
-                            // on logue le tout
-                            if (currentMessage.SourcePort != null)
-                                _logger.LogDebug("Receive from {remoteAdress}", currentMessage.SourcePort.RemoteAdress);
-                            _logger.LogDebug("{message}", currentMessage);
-                        }
-                        switch (currentMessage)
-                        {
-                            case RtspResponse response:
-                                lock (_sentMessage)
-                                {
-                                    // add the original question to the response.
-                                    if (_sentMessage.TryGetValue(response.CSeq, out var originalRequest))
-                                    {
-                                        _sentMessage.Remove(response.CSeq);
-                                        response.OriginalRequest = originalRequest;
-                                    }
-                                    else
-                                    {
-                                        _logger.LogWarning("Receive response not asked {cseq}", response.CSeq);
-                                    }
-                                }
-                                OnMessageReceived(new RtspChunkEventArgs(response));
-                                break;
-
-                            case RtspRequest:
-                                OnMessageReceived(new RtspChunkEventArgs(currentMessage));
-                                break;
-                            case RtspData:
-                                OnDataReceived(new RtspChunkEventArgs(currentMessage));
-                                break;
-                        }
-                    }
-                    else
+                    if (currentMessage is null)
                     {
                         break;
+                    }
+
+                    if (_logger.IsEnabled(LogLevel.Debug) && currentMessage is not RtspData)
+                    {
+                        // on logue le tout
+                        if (currentMessage.SourcePort != null)
+                            _logger.LogDebug("Receive from {remoteAdress}", currentMessage.SourcePort.RemoteAdress);
+                        _logger.LogDebug("{message}", currentMessage);
+                    }
+                    switch (currentMessage)
+                    {
+                        case RtspResponse response:
+                            // add the original question to the response.
+                            if (_sentMessage.TryPopValue(response.CSeq, out var originalRequest))
+                            {
+                                response.OriginalRequest = originalRequest;
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Receive response not asked {cseq}", response.CSeq);
+                            }
+                            OnMessageReceived(new RtspChunkEventArgs(response));
+                            break;
+
+                        case RtspRequest:
+                            OnMessageReceived(new RtspChunkEventArgs(currentMessage));
+                            break;
+                        case RtspData:
+                            OnDataReceived(new RtspChunkEventArgs(currentMessage));
+                            break;
                     }
                 }
             }
@@ -240,17 +234,13 @@ namespace Rtsp
 
             // if it it a request  we store the original message
             // and we renumber it.
-            //TODO handle lost message (for example every minute cleanup old message)
             if (message is RtspRequest originalMessage)
             {
                 // Do not modify original message
                 message = (RtspMessage)message.Clone();
                 _sequenceNumber++;
                 message.CSeq = _sequenceNumber;
-                lock (_sentMessage)
-                {
-                    _sentMessage.Add(message.CSeq, originalMessage);
-                }
+                _sentMessage.Add(message.CSeq, originalMessage);
             }
 
             _logger.LogDebug("Send Message\n {message}", message);
