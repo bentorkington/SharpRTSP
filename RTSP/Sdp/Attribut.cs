@@ -1,27 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 
 namespace Rtsp.Sdp
 {
     public class Attribut
     {
-        private static readonly Dictionary<string, Type> attributMap = new(StringComparer.Ordinal)
+        private static readonly Dictionary<string, Func<Attribut>> attributMap = new(StringComparer.Ordinal)
         {
-            {AttributRtpMap.NAME,typeof(AttributRtpMap)},
-            {AttributFmtp.NAME,typeof(AttributFmtp)},
+            {AttributRtpMap.NAME, () => new AttributRtpMap() },
+            {AttributFmtp.NAME  , () => new AttributFmtp()   },
         };
 
         public virtual string Key { get; }
         public virtual string Value { get; protected set; } = string.Empty;
 
-        public static void RegisterNewAttributeType(string key, Type attributType)
+        public static void RegisterNewAttributeType(string key, Func<Attribut> attributTypeConstructor)
         {
-            if (!attributType.IsSubclassOf(typeof(Attribut)))
-                throw new ArgumentException("Type must be subclass of Rtsp.Sdp.Attribut", nameof(attributType));
-
-            attributMap[key] = attributType;
+            attributMap[key] = attributTypeConstructor;
         }
 
         public Attribut(string key)
@@ -33,24 +29,17 @@ namespace Rtsp.Sdp
         {
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-
             Contract.EndContractBlock();
 
             var listValues = value.Split(':', 2);
-
-            Attribut returnValue;
-
+            
             // Call parser of child type
-            if (attributMap.TryGetValue(listValues[0], out var childType))
+            if (!attributMap.TryGetValue(listValues[0], out var childContructor))
             {
-                var defaultContructor = childType.GetConstructor(Type.EmptyTypes);
-                Debug.Assert(defaultContructor is not null, "The child type must have an empty constructor");
-                returnValue = (defaultContructor!.Invoke(Type.EmptyTypes) as Attribut)!;
+               childContructor = () => new Attribut(listValues[0]);
             }
-            else
-            {
-                returnValue = new Attribut(listValues[0]);
-            }
+            
+            var returnValue = childContructor.Invoke();
             // Parse the value. Note most attributes have a value but recvonly does not have a value
             if (listValues.Length > 1) returnValue.ParseValue(listValues[1]);
 
