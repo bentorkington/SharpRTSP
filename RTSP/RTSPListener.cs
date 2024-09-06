@@ -296,7 +296,7 @@ namespace Rtsp
         /// </summary>
         /// <param name="reader">The Rtsp stream pipereader.</param>
         /// <returns>Message readen</returns>
-        public async Task<RtspChunk?> ReadOneMessageAsync(PipeReader reader, CancellationToken token = default)
+        public async ValueTask<RtspChunk?> ReadOneMessageAsync(PipeReader reader, CancellationToken token = default)
         {
             if (reader == null)
                 throw new ArgumentNullException(nameof(reader));
@@ -404,7 +404,7 @@ namespace Rtsp
         /// </summary>
         /// <param name="commandStream">The Rtsp stream.</param>
         /// <returns>Message readen</returns>
-        public async Task<RtspChunk?> ReadOneMessageAsync(Stream commandStream, CancellationToken token)
+        public async ValueTask<RtspChunk?> ReadOneMessageAsync(Stream commandStream, CancellationToken token)
         {
             if (commandStream == null)
                 throw new ArgumentNullException(nameof(commandStream));
