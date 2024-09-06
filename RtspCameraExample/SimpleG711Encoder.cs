@@ -38,8 +38,8 @@ public class SimpleG711Encoder
         private const int cBias = 0x84;
         private const int cClip = 32635;
 
-        private static readonly byte[] MuLawCompressTable = new byte[256]
-        {
+        private static readonly byte[] MuLawCompressTable =
+        [
                 0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,
                 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
                 5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
@@ -56,7 +56,7 @@ public class SimpleG711Encoder
                 7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
                 7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
                 7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7
-        };
+        ];
 
         /// <summary>
         /// Encodes a single 16 bit sample to mu-law
@@ -86,8 +86,8 @@ public class SimpleG711Encoder
     {
         private const int cBias = 0x84;
         private const int cClip = 32635;
-        private static readonly byte[] ALawCompressTable = new byte[128]
-        {
+        private static readonly byte[] ALawCompressTable =
+        [
              1,1,2,2,3,3,3,3,
              4,4,4,4,4,4,4,4,
              5,5,5,5,5,5,5,5,
@@ -104,7 +104,7 @@ public class SimpleG711Encoder
              7,7,7,7,7,7,7,7,
              7,7,7,7,7,7,7,7,
              7,7,7,7,7,7,7,7
-        };
+        ];
 
         /// <summary>
         /// Encodes a single 16 bit sample to a-law
