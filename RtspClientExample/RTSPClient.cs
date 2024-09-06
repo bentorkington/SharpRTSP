@@ -454,7 +454,7 @@ namespace RtspClientExample
                     try
                     {
                         byte[] rtcp_receiver_report = new byte[8];
-                        int reportCount = 0; // an empty report
+                        const int reportCount = 0; // an empty report
                         int length = (rtcp_receiver_report.Length / 4) - 1; // num 32 bit words minus 1
                         RtcpPacketUtil.WriteHeader(
                             rtcp_receiver_report,
@@ -465,9 +465,7 @@ namespace RtspClientExample
                             length,
                             ssrc);
 
-
                         transport.WriteToControlPort(rtcp_receiver_report);
-
                     }
                     catch
                     {

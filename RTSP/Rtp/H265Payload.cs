@@ -241,7 +241,7 @@ namespace Rtsp.Rtp
                 new List<IMemoryOwner<byte>>(owners))
             {
                 RtpTimestamp = packet.Timestamp,
-                ClockTimestamp = _timestamp
+                ClockTimestamp = _timestamp,
             };
             nals.Clear();
             owners.Clear();

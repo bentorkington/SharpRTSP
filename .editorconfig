@@ -14,3 +14,9 @@ MA0051.maximum_statements_per_method = 80
 # Not supported in netstandard 2.0 and 2.1
 # so can't be used in this project
 dotnet_diagnostic.MA0110.severity = none
+
+# not supported in netstandard 2.0
+dotnet_diagnostic.MA0111.severity = none
+
+# not supported in netstandard 2.0
+dotnet_diagnostic.MA0089.severity = none

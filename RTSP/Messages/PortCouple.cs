@@ -50,7 +50,7 @@
         /// Gets a value indicating whether this instance has second port.
         /// </summary>
         /// <value>
-        /// 	<c>true</c> if this instance has second port; otherwise, <c>false</c>.
+        /// 	<see langword="keyword" >true</see> if this instance has second port; otherwise, <see langword="keyword" >false</see>.
         /// </value>
         public bool IsSecondPortPresent => Second != 0;
 
@@ -59,7 +59,7 @@
         /// </summary>
         /// <param name="stringValue">A string value.</param>
         /// <returns>The port couple</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="stringValue"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="stringValue"/> is <see langword="keyword" >null</see>.</exception>
         public static PortCouple Parse(string stringValue)
         {
             if (stringValue == null)

@@ -19,15 +19,10 @@ namespace RtspCameraExample
         private readonly CJOCh264encoder h264encoder = new();
 
         // Constuctor
-        public SimpleH264Encoder(int width, int height, uint fps)
+        public SimpleH264Encoder(int width, int height)
         {
-            // We have the ability to set the aspect ratio (SAR).
-            // For now we set to 1:1
-            uint SARw = 1;
-            uint SARh = 1;
-
             // Initialise H264 encoder.
-            h264encoder.IniCoder(width, height, fps, CJOCh264encoder.SampleFormat.SAMPLE_FORMAT_YUV420p, SARw, SARh);
+            h264encoder.IniCoder(width, height, CJOCh264encoder.SampleFormat.SAMPLE_FORMAT_YUV420p);
             // NAL array will contain SPS and PPS
 
         }

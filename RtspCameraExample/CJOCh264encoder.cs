@@ -170,7 +170,7 @@ namespace RtspCameraExample
             stream.AddExpGolombUnsigned(7); // slice_type
             stream.AddExpGolombUnsigned(0); // pic_param_set_id
 
-            byte cFrameNum = 0; // (byte)(lFrameNum % 16); // H264 Spec says "If the current picture is an IDR picture, frame_num shall be equal to 0. "
+            const byte cFrameNum = 0; // (byte)(lFrameNum % 16); // H264 Spec says "If the current picture is an IDR picture, frame_num shall be equal to 0. "
                                 // Also any maths here must relate to the value of log2_max_frame_num_minus4 in the SPS
 
             stream.AddBits(cFrameNum, 4); // frame_num ( numbits = v = log2_max_frame_num_minus4 + 4)
@@ -226,7 +226,7 @@ namespace RtspCameraExample
             {
                 for (int x = nXpos * frame.nYmbwidth; x < (nXpos + 1) * frame.nYmbwidth; x++)
                 {
-                    stream.AddByte(frameBuffer[y * frame.nYwidth + x]);
+                    stream.AddByte(frameBuffer[(y * frame.nYwidth) + x]);
                 }
             }
 
@@ -236,7 +236,7 @@ namespace RtspCameraExample
             {
                 for (int x = nXpos * frame.nCmbwidth; x < (nXpos + 1) * frame.nCmbwidth; x++)
                 {
-                    stream.AddByte(frameBuffer[nYsize + (y * frame.nCwidth + x)]);
+                    stream.AddByte(frameBuffer[nYsize + (y * frame.nCwidth) + x]);
                 }
             }
 
@@ -245,7 +245,7 @@ namespace RtspCameraExample
             {
                 for (int x = nXpos * frame.nCmbwidth; x < (nXpos + 1) * frame.nCmbwidth; x++)
                 {
-                    stream.AddByte(frameBuffer[nYsize + nCsize + (y * frame.nCwidth + x)]);
+                    stream.AddByte(frameBuffer[nYsize + nCsize + (y * frame.nCwidth) + x]);
                 }
             }
         }
@@ -262,14 +262,12 @@ namespace RtspCameraExample
             \param nImH Frame height in pixels
             \param nFps Desired frames per second of the output file (typical values are: 25, 30, 50, etc)
             \param SampleFormat Sample format if the input file. In this implementation only SAMPLE_FORMAT_YUV420p is allowed
-            \param nSARw Indicates the horizontal size of the sample aspect ratio (typical values are:1, 4, 16, etc)
-            \param nSARh Indicates the vertical size of the sample aspect ratio (typical values are:1, 3, 9, etc)
         */
 
         //public functions
 
         //Initilizes the h264 coder (mini-coder)
-        public void IniCoder(int nImW, int nImH, uint nImFps, SampleFormat sampleFormat, uint nSARw = 1, uint nSARh = 1)
+        public void IniCoder(int nImW, int nImH, SampleFormat sampleFormat)
         {
             m_lNumFramesAdded = 0;
 

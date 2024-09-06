@@ -31,7 +31,6 @@ namespace RtspCameraExample
         {
             private readonly RtspServer rtspServer;
             private readonly SimpleH264Encoder h264Encoder;
-            private readonly SimpleG711Encoder ulaw_encoder;
 
             private readonly byte[] raw_sps;
             private readonly byte[] raw_pps;
@@ -71,15 +70,10 @@ namespace RtspCameraExample
                 /////////////////////////////////////////
                 // Step 2 - Create the H264 Encoder. It will feed NALs into the RTSP server
                 /////////////////////////////////////////
-                h264Encoder = new SimpleH264Encoder(width, height, fps);
+                h264Encoder = new SimpleH264Encoder(width, height);
                 //h264_encoder = new TinyH264Encoder(); // hard coded to 192x128
                 raw_sps = h264Encoder.GetRawSPS();
                 raw_pps = h264Encoder.GetRawPPS();
-
-                /////////////////////////////////////////
-                // Step 3 - Create the PCM to G711 Encoder.
-                /////////////////////////////////////////
-                ulaw_encoder = new SimpleG711Encoder();
 
                 /////////////////////////////////////////
                 // Step 3 - Start the Video and Audio Test Card (dummy YUV image and dummy PCM audio)
@@ -145,7 +139,7 @@ namespace RtspCameraExample
             private void Audio_source_ReceivedAudioFrame(uint timestamp_ms, short[] audio_frame)
             {
                 // Compress the audio into G711 and feed into the RTSP Server
-                byte[] g711_data = ulaw_encoder.EncodeULaw(audio_frame);
+                byte[] g711_data = SimpleG711Encoder.EncodeULaw(audio_frame);
 
                 // Pass the audio data into the RTSP Server
                 rtspServer.FeedInAudioPacket(timestamp_ms, g711_data);
