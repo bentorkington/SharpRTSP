@@ -111,44 +111,6 @@ namespace Rtsp.Rtp
             ChannelConfiguration = bs.Read(4);
         }
 
-        public IList<ReadOnlyMemory<byte>> ProcessRTPPacket(RtpPacket packet, out DateTime? timeStamp)
-        {
-            // RTP Payload for MPEG4-GENERIC can consist of multple blocks.
-            // Each block has 3 parts
-            // Part 1 - Acesss Unit Header Length + Header
-            // Part 2 - Access Unit Auxiliary Data Length + Data (not used in AAC High Bitrate)
-            // Part 3 - Access Unit Audio Data
-
-            // The rest of the RTP packet is the AMR data
-            List<ReadOnlyMemory<byte>> audio_data = [];
-
-            int position = 0;
-            var rtp_payload = packet.Payload;
-            timeStamp = DateTime.MinValue;
-
-            // 2 bytes for AU Header Length, 2 bytes of AU Header payload
-            while (position + 4 <= packet.PayloadSize)
-            {
-                // Get Size of the AU Header
-                int au_headers_length_bits = (rtp_payload[position] << 8) + (rtp_payload[position + 1] << 0); // 16 bits
-                int au_headers_length = (int)Math.Ceiling(au_headers_length_bits / 8.0);
-                position += 2;
-
-                // Examine the AU Header. Get the size of the AAC data
-                int aac_frame_size = (rtp_payload[position] << 8) + (rtp_payload[position + 1] << 0) >> 3; // 13 bits
-                int aac_index_delta = rtp_payload[position + 1] & 0x03; // 3 bits
-                position += au_headers_length;
-
-                // extract the AAC block
-                if (position + aac_frame_size > rtp_payload.Length) break; // not enough data to copy
-
-                audio_data.Add(rtp_payload[position..(position + aac_frame_size)].ToArray());
-                position += aac_frame_size;
-            }
-
-            return audio_data;
-        }
-
         public RawMediaFrame ProcessPacket(RtpPacket packet)
         {
             // RTP Payload for MPEG4-GENERIC can consist of multple blocks.

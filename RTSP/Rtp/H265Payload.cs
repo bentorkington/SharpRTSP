@@ -43,30 +43,6 @@ namespace Rtsp.Rtp
             _memoryPool = memoryPool ?? MemoryPool<byte>.Shared;
         }
 
-        public IList<ReadOnlyMemory<byte>> ProcessRTPPacket(RtpPacket packet, out DateTime? timestamp)
-        {
-            if (packet.Extension.Length > 0)
-            {
-                _timestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _);
-            }
-
-            ProcessRTPFrame(packet.Payload);
-
-            if (packet.IsMarker)
-            {
-                // End Marker is set return the list of NALs
-                var nalToReturn = nals.ToList();
-                nals.Clear();
-                owners.Clear();
-                timestamp = _timestamp;
-                return nalToReturn;
-            }
-
-            timestamp = null;
-            // we don't have a frame yet. Keep accumulating RTP packets
-            return [];
-        }
-
         /// <summary>
         /// Process a RTP Frame and extract the NAL and add it to the list.
         /// </summary>

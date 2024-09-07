@@ -35,33 +35,6 @@ namespace Rtsp.Rtp
             _memoryPool = memoryPool ?? MemoryPool<byte>.Shared;
         }
 
-        public IList<ReadOnlyMemory<byte>> ProcessRTPPacket(RtpPacket packet, out DateTime? timestamp)
-        {
-            if (packet.Extension.Length > 0)
-            {
-                _timestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(packet.Extension, headerPosition: out _);
-            }
-
-            ProcessH264RTPFrame(packet.Payload);
-
-            if (packet.IsMarker)
-            {
-                // Output some statistics
-                _logger.LogDebug("Norm={norm} ST-A={stapA} ST-B={stapB} M16={mtap16} M24={mtap24} FU-A={fuA} FU-B={fuB}",
-                    norm, stap_a, stap_b, mtap16, mtap24, fu_a, fu_b);
-
-                // End Marker is set return the list of NALs
-                var nalToReturn = nalUnits.ToList();
-                nalUnits.Clear();
-                owners.Clear();
-                timestamp = _timestamp;
-                return nalToReturn;
-            }
-            // we don't have a frame yet. Keep accumulating RTP packets
-            timestamp = DateTime.MinValue;
-            return [];
-        }
-
         // Process a RTP Packet.
         // Returns a list of NAL Units (with no Size header)
         private void ProcessH264RTPFrame(ReadOnlySpan<byte> payload)

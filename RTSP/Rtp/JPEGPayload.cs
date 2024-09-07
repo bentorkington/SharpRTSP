@@ -48,34 +48,6 @@ namespace Rtsp.Rtp
             _memoryPool = memoryPool ?? MemoryPool<byte>.Shared;
         }
 
-        public IList<ReadOnlyMemory<byte>> ProcessRTPPacket(RtpPacket packet, out DateTime? timeStamp)
-        {
-            if (packet.HasExtension)
-            {
-                var extension = packet.Extension;
-                _timestamp = RtpPacketOnvifUtils.ProcessRTPTimestampExtension(extension, out int headerPosition);
-                extension = extension[headerPosition..];
-                // if there is more data maybe it is JPEG extension
-                if (extension.Length > 0)
-                {
-                    (_extensionFrameWidth, _extensionFrameHeight) = RtpPacketOnvifUtils.ProcessJpegFrameExtension(extension);
-                }
-            }
-            ProcessJPEGRTPFrame(packet.Payload);
-
-            if (!packet.IsMarker)
-            {
-                // we don't have a frame yet. Keep accumulating RTP packets
-                timeStamp = DateTime.MinValue;
-                return [];
-            }
-            // End Marker is set. The frame is complete
-            var data = _frameStream.ToArray();
-            _frameStream.SetLength(0);
-            timeStamp = _timestamp;
-            return [data];
-        }
-
         public RawMediaFrame ProcessPacket(RtpPacket packet)
         {
             if (packet.HasExtension)

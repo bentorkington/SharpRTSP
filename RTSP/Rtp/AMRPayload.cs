@@ -17,24 +17,6 @@ namespace Rtsp.Rtp
             _memoryPool = memoryPool ?? MemoryPool<byte>.Shared;
         }
 
-        public IList<ReadOnlyMemory<byte>> ProcessRTPPacket(RtpPacket packet, out DateTime? timeStamp)
-        {
-            // TODO check the RFC to handle the different modes
-
-            timeStamp = null;
-
-            // Octet-Aligned Mode (RFC 4867 Section 4.4.1)
-            // First byte is the Payload Header
-            if (packet.PayloadSize < 1)
-            {
-                return [];
-            }
-            // byte payloadHeader = payload[0];
-
-            // The rest of the RTP packet is the AMR data
-            return [packet.Payload[1..].ToArray()];
-        }
-
         public RawMediaFrame ProcessPacket(RtpPacket packet)
         {
             // TODO check the RFC to handle the different modes

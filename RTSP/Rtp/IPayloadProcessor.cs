@@ -5,9 +5,7 @@ namespace Rtsp.Rtp
 {
     public interface IPayloadProcessor
     {
-        [Obsolete("Use ProcessPacket instead and dispose result")]
-        IList<ReadOnlyMemory<byte>> ProcessRTPPacket(RtpPacket packet, out DateTime? timeStamp);
-
+  
         /// <summary>
         /// Process an RtpPacket and return a RawMediaFrame containing the data of the stream.
         /// </summary>
