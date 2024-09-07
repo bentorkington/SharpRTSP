@@ -405,17 +405,15 @@ namespace RtspClientExample
 
             // There can be multiple RTCP packets transmitted together. Loop ever each one
 
-            int packetIndex = 0;
-            var span = e.Data.Data.Span;
-            while (packetIndex < e.Data.Data.Length)
+            var rtcpPacket = new RtcpPacket(e.Data.Data.Span);
+            while (!rtcpPacket.IsEmpty)
             {
-                int rtcp_version = (span[packetIndex + 0] >> 6);
-                int rtcp_padding = (span[packetIndex + 0] >> 5) & 0x01;
-                int rtcp_reception_report_count = (span[packetIndex + 0] & 0x1F);
-                byte rtcp_packet_type = span[packetIndex + 1]; // Values from 200 to 207
-                int rtcp_length = (int)(span[packetIndex + 2] << 8) + (int)(span[packetIndex + 3]); // number of 32 bit words
-                uint rtcp_ssrc = (uint)(span[packetIndex + 4] << 24) + (uint)(span[packetIndex + 5] << 16)
-                    + (uint)(span[packetIndex + 6] << 8) + (uint)(span[packetIndex + 7]);
+                if (!rtcpPacket.IsWellFormed)
+                {
+                    _logger.LogWarning("Invalid RTCP packet");
+                    break;
+                }
+
 
                 // 200 = SR = Sender Report
                 // 201 = RR = Receiver Report
@@ -424,31 +422,17 @@ namespace RtspClientExample
                 // 204 = APP = Application Specific Method
                 // 207 = XR = Extended Reports
 
-                _logger.LogDebug("RTCP Data. PacketType={rtcp_packet_type} SSRC={ssrc}", rtcp_packet_type, rtcp_ssrc);
+                _logger.LogDebug("RTCP Data. PacketType={rtcp_packet_type}", rtcpPacket.PacketType);
 
-                if (rtcp_packet_type == RtcpPacketUtil.RTCP_PACKET_TYPE_SENDER_REPORT)
+                if (rtcpPacket.PacketType == RtcpPacketUtil.RTCP_PACKET_TYPE_SENDER_REPORT)
                 {
                     // We have received a Sender Report
                     // Use it to convert the RTP timestamp into the UTC time
+                    var time = rtcpPacket.SenderReport.Clock;
+                    var rtp_timestamp = rtcpPacket.SenderReport.RtpTimestamp;
 
-                    UInt32 ntp_msw_seconds = (uint)(span[packetIndex + 8] << 24) + (uint)(span[packetIndex + 9] << 16)
-                    + (uint)(span[packetIndex + 10] << 8) + (uint)(span[packetIndex + 11]);
-
-                    UInt32 ntp_lsw_fractions = (uint)(span[packetIndex + 12] << 24) + (uint)(span[packetIndex + 13] << 16)
-                    + (uint)(span[packetIndex + 14] << 8) + (uint)(span[packetIndex + 15]);
-
-                    UInt32 rtp_timestamp = (uint)(span[packetIndex + 16] << 24) + (uint)(span[packetIndex + 17] << 16)
-                    + (uint)(span[packetIndex + 18] << 8) + (uint)(span[packetIndex + 19]);
-
-                    double ntp = ntp_msw_seconds + (ntp_lsw_fractions / UInt32.MaxValue);
-
-                    // NTP Most Signigicant Word is relative to 0h, 1 Jan 1900
-                    // This will wrap around in 2036
-                    var time = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-                    time = time.AddSeconds(ntp_msw_seconds); // adds 'double' (whole&fraction)
-
-                    _logger.LogDebug("RTCP time (UTC) for RTP timestamp {timestamp} is {time}", rtp_timestamp, time);
+                    _logger.LogDebug("RTCP time (UTC) for RTP timestamp {timestamp} is {time} SSRC {ssrc}", rtp_timestamp, time, rtcpPacket.SenderSsrc);
+                    _logger.LogDebug("Packet Count {packetCount} Octet Count {octetCount}", rtcpPacket.SenderReport.PacketCount, rtcpPacket.SenderReport.OctetCount);
 
                     // Send a Receiver Report
                     try
@@ -472,8 +456,7 @@ namespace RtspClientExample
                         _logger.LogDebug("Error writing RTCP packet");
                     }
                 }
-
-                packetIndex += ((rtcp_length + 1) * 4);
+                rtcpPacket = rtcpPacket.Next;
             }
             e.Data.Dispose();
         }
@@ -622,6 +605,23 @@ namespace RtspClientExample
                         {
                             tcpTransport.DataChannel = transport.Interleaved?.First ?? tcpTransport.DataChannel;
                             tcpTransport.ControlChannel = transport.Interleaved?.Second ?? tcpTransport.ControlChannel;
+                        }
+                    } else if(!transport.IsMulticast)
+                    {
+                        UDPSocket? udpSocket = null;
+                        if (isVideoChannel)
+                        {
+                            udpSocket = videoRtpTransport as UDPSocket;
+                        }
+
+                        if (isAudioChannel)
+                        {
+                            udpSocket = audioRtpTransport as UDPSocket;
+                        }
+                        if (udpSocket is not null)
+                        {
+                            udpSocket.SetDataDestination(_uri!.Host, transport.ServerPort?.First ?? 0);
+                            udpSocket.SetControlDestination(_uri!.Host, transport.ServerPort?.Second ?? 0);
                         }
                     }
 
