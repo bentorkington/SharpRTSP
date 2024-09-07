@@ -84,7 +84,7 @@ public static class RtpPacketOnvifUtils
             // padding  [8 bits]    -> just padding values.
 
             headerPosition += sizeof(uint);
-            ulong msec = fractions * 1000 / uint.MaxValue;
+            double msec = fractions * 1000.0 / uint.MaxValue;
 
             return dt_1900.AddSeconds(seconds).AddMilliseconds(msec);
         }
