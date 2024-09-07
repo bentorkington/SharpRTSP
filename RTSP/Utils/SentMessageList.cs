@@ -29,7 +29,7 @@ namespace Rtsp.Utils
             }
         }
 
-        internal bool TryPopValue(int cSeq, [MaybeNullWhen(false)] out RtspRequest? originalRequest)
+        public bool TryPopValue(int cSeq, [MaybeNullWhen(false)] out RtspRequest? originalRequest)
         {
             lock (_sentMessage)
             {

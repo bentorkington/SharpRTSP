@@ -59,7 +59,6 @@ namespace Rtsp
                 {
                     dataSocket!.Client.ReceiveBufferSize = 100 * 1024;
                     dataSocket!.Client.SendBufferSize = 65535; // default is 8192. Make it as large as possible for large RTP packets which are not fragmented
-
                     controlSocket!.Client.DontFragment = false;
                 }
             }
