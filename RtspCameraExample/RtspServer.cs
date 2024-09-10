@@ -827,7 +827,7 @@ namespace RtspCameraExample
                 // eg when there is Write Error
                 listConnectionCopy = [.. rtspConnectionList];
             }
-            // Go through each RTSP connection and output the NAL on the Video Session
+            // Go through each RTSP connection and output the Audio data to the Audio Session
             var tasks = listConnectionCopy.Select(async (connection) =>
             {
                 // Only process Sessions in Play Mode

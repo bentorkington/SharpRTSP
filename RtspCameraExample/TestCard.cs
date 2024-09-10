@@ -110,8 +110,8 @@ public class TestCard
             Send_Audio_Frame();
             audio_count++;
 
-            // Some CPU cycles will have been used in Sending the YUV Frame.
-            // Compute the delay required (the Timer Interval) before sending the next YUV frame
+            // Some CPU cycles will have been used in Sending the Audio Frame.
+            // Compute the delay required (the Timer Interval) before sending the next Audio frame
             long time_for_next_tick_ms = (audio_count * audio_duration_ms); // 20ms samples is 50 audio packets per second
             long time_to_wait = time_for_next_tick_ms - stopwatch.ElapsedMilliseconds;
             if (time_to_wait <= 0) time_to_wait = 1; // cannot have negative or zero intervals
