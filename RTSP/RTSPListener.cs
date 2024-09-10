@@ -29,6 +29,7 @@ namespace Rtsp
         private CancellationTokenSource? _cancelationTokenSource;
         private Task? _mainTask;
         private Stream _stream;
+        private readonly SemaphoreSlim writeSemaphoreSlim = new SemaphoreSlim(1, 1);
 
         private int _sequenceNumber;
 
@@ -568,7 +569,15 @@ namespace Rtsp
             data[2] = (byte)((frame.Length & 0xFF00) >> 8);
             data[3] = (byte)(frame.Length & 0x00FF);
             frame.CopyTo(data.AsMemory(4));
-            await _stream.WriteAsync(data.AsMemory(0, packetLength), _cancelationTokenSource.Token).ConfigureAwait(false);
+            await writeSemaphoreSlim.WaitAsync(_cancelationTokenSource.Token).ConfigureAwait(false);
+            try
+            {
+                await _stream.WriteAsync(data.AsMemory(0, packetLength), _cancelationTokenSource.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                writeSemaphoreSlim.Release();
+            }
             ArrayPool<byte>.Shared.Return(data);
         }
 
@@ -600,7 +609,16 @@ namespace Rtsp
             data[2] = (byte)((frame.Length & 0xFF00) >> 8);
             data[3] = (byte)(frame.Length & 0x00FF);
             frame.CopyTo(data.AsSpan(4));
-            _stream.Write(data, 0, packetLength);
+            writeSemaphoreSlim.Wait();
+            try
+            {
+                _stream.Write(data, 0, packetLength);
+            }
+            finally
+            {
+                writeSemaphoreSlim.Release();
+            }
+
             ArrayPool<byte>.Shared.Return(data);
         }
 
