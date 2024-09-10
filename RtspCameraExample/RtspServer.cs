@@ -50,6 +50,9 @@ namespace RtspCameraExample
         private readonly NetworkCredential credential;
         private readonly Authentication? auth;
 
+        private bool _useRTSPS = false;
+        private string _pfxFile = "";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="RTSPServer"/> class.
         /// </summary>
@@ -84,6 +87,24 @@ namespace RtspCameraExample
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="RTSPServer"/> class in RTSPS (TLS) Mode.
+        /// </summary>
+        /// <param name="portNumber">A numero port.</param>
+        /// <param name="username">username.</param>
+        /// <param name="password">password.</param>
+        /// <param name="pfxFile">pfxFile used for RTSPS TLS Server Certificate.</param>
+        public RtspServer(int portNumber, string username, string password, string pfxFile, ILoggerFactory loggerFactory)
+            : this(portNumber, username, password, loggerFactory)
+        {
+            if (String.IsNullOrEmpty(pfxFile))
+            {
+                throw new ArgumentOutOfRangeException("PFX File must not be null or empty for RTSPS mode");
+            }
+            _useRTSPS = true;
+            _pfxFile = pfxFile;
+        }
+
+        /// <summary>
         /// Starts the listen.
         /// </summary>
         public void StartListen()
@@ -109,7 +130,12 @@ namespace RtspCameraExample
                     _logger.LogDebug("Connection from {remoteEndPoint}", oneClient.Client.RemoteEndPoint);
 
                     // Hand the incoming TCP connection over to the RTSP classes
-                    var rtsp_socket = new RtspTcpTransport(oneClient);
+                    IRtspTransport rtsp_socket;
+                    if (!_useRTSPS)
+                        rtsp_socket = new RtspTcpTransport(oneClient);
+                    else
+                        rtsp_socket = new RtspTcpTlsTransport(oneClient, _pfxFile); // NOTE - we can add a callback where we can validate the TLS Certificates here
+
                     RtspListener newListener = new(rtsp_socket, _loggerFactory.CreateLogger<RtspListener>());
                     newListener.MessageReceived += RTSPMessageReceived;
 

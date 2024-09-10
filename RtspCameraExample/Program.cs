@@ -38,6 +38,22 @@ namespace RtspCameraExample
             private readonly int port = 8554;
             private readonly string username = "user";      // or use NUL if there is no username
             private readonly string password = "password";  // or use NUL if there is no password
+            private readonly bool useRTSPS = false;         // Set True if you want to accept RTSPS connections
+            private readonly string pfxFile = "c:\\tls_certificate\\server.pfx";           // PFX file used by RTSPS Server
+
+            // You can make a Self Signed PFX Certificate file with these steps
+            // 1) Run   "mkdir c:\tls_certificate"
+            //          "cd c:\tls_certificate"
+
+            // 2) Run   "\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\MakeCert.exe" -r -pe -n "CN=192.168.26.94" -sky exchange -sv server.pvk server.cer
+            //    NOTES 1) The CN wants to be the IP address or Hostname of the RTSPS server. This is only a basic example. A proper certificate would use SubjectAltNames
+            //          2) When MAkeCert it asks for the PASSWORD in the Pop-up windows, click on the 'NONE' button.
+            //             (would be better to have a password on the certificate, but I could not make it work)
+
+            // 3) Run   "\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\pvk2pfx.exe" -pvk server.pvk -spc server.cer -pfx server.pfx
+
+            // 4) You now have a file called server.pfx which can be used by this application
+
 
             private readonly int width =  192;
             private readonly int height = 128;
@@ -54,7 +70,10 @@ namespace RtspCameraExample
                 /////////////////////////////////////////
                 // Step 1 - Start the RTSP Server
                 /////////////////////////////////////////
-                rtspServer = new RtspServer(port, username, password, loggerFactory);
+                if (!useRTSPS)
+                    rtspServer = new RtspServer(port, username, password, loggerFactory);
+                else
+                    rtspServer = new RtspServer(port, username, password, pfxFile, loggerFactory); // rtsps:// needs a PFX File
                 try
                 {
                     rtspServer.StartListen();
@@ -65,7 +84,10 @@ namespace RtspCameraExample
                     throw;
                 }
 
-                Console.WriteLine($"RTSP URL is rtsp://{username}:{password}@hostname:{port}");
+                if (!useRTSPS)
+                    Console.WriteLine($"RTSP URL is rtsp://{username}:{password}@hostname:{port}");
+                else
+                    Console.WriteLine($"Encrypted RTSP URL is rtsps://{username}:{password}@hostname:{port}");
 
                 /////////////////////////////////////////
                 // Step 2 - Create the H264 Encoder. It will feed NALs into the RTSP server
