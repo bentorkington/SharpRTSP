@@ -11,6 +11,8 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -96,7 +98,7 @@ namespace RtspCameraExample
         public RtspServer(int portNumber, string username, string password, string pfxFile, ILoggerFactory loggerFactory)
             : this(portNumber, username, password, loggerFactory)
         {
-            if (String.IsNullOrEmpty(pfxFile))
+            if (string.IsNullOrEmpty(pfxFile))
             {
                 throw new ArgumentOutOfRangeException("PFX File must not be null or empty for RTSPS mode");
             }
@@ -132,24 +134,36 @@ namespace RtspCameraExample
                     // Hand the incoming TCP connection over to the RTSP classes
                     IRtspTransport rtsp_socket;
                     if (!_useRTSPS)
-                        rtsp_socket = new RtspTcpTransport(oneClient);
-                    else
-                        rtsp_socket = new RtspTcpTlsTransport(oneClient, _pfxFile); // NOTE - we can add a callback where we can validate the TLS Certificates here
-
-                    RtspListener newListener = new(rtsp_socket, _loggerFactory.CreateLogger<RtspListener>());
-                    newListener.MessageReceived += RTSPMessageReceived;
-
-                    // Add the RtspListener to the RTSPConnections List
-                    lock (rtspConnectionList)
                     {
-                        RTSPConnection new_connection = new()
-                        {
-                            Listener = newListener,
-                        };
-                        rtspConnectionList.Add(new_connection);
+                        rtsp_socket = new RtspTcpTransport(oneClient);
+                    }
+                    else
+                    {
+                        var certificate = new X509Certificate2(_pfxFile);
+                        rtsp_socket = new RtspTcpTlsTransport(oneClient, certificate); // NOTE - we can add a callback where we can validate the TLS Certificates here
                     }
 
-                    newListener.Start();
+                    try
+                    {
+                        RtspListener newListener = new(rtsp_socket, _loggerFactory.CreateLogger<RtspListener>());
+                        newListener.MessageReceived += RTSPMessageReceived;
+
+                        // Add the RtspListener to the RTSPConnections List
+                        lock (rtspConnectionList)
+                        {
+                            RTSPConnection new_connection = new()
+                            {
+                                Listener = newListener,
+                            };
+                            rtspConnectionList.Add(new_connection);
+                        }
+
+                        newListener.Start();
+                    }
+                    catch (AuthenticationException)
+                    {
+                        _logger.LogWarning("Invalid client (maybe RTSP on RTSPS socket)");
+                    }
                 }
             }
             catch (SocketException)

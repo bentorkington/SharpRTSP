@@ -13,8 +13,7 @@ namespace Rtsp
     public class RtspTcpTlsTransport : RtspTcpTransport
     {
         private readonly RemoteCertificateValidationCallback? _userCertificateValidationCallback;
-        private readonly bool _isServer = false;
-        private readonly String _pfxFile = "";
+        private readonly X509Certificate2? _serverCertificate;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="RtspTcpTlsTransport"/> class as a SSL/TLS Client
@@ -37,16 +36,15 @@ namespace Rtsp
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RtspTcpTlsTransport"/> class as a SSL/TLS Server with PFX File
+        /// Initializes a new instance of the <see cref="RtspTcpTlsTransport"/> class as a SSL/TLS Server with a certificate.
         /// </summary>
         /// <param name="tcpConnection">The underlying TCP connection.</param>
-        /// <param name="pfxFile">The filename of the PFX file for the TLS Server.</param>
+        /// <param name="certificate">The certificate for the TLS Server.</param>
         /// <param name="userCertificateValidationCallback">The user certificate validation callback, <see langword="null"/> if default should be used.</param>
-        public RtspTcpTlsTransport(TcpClient tcpConnection, String pfxFile, RemoteCertificateValidationCallback? userCertificateValidationCallback = null)
+        public RtspTcpTlsTransport(TcpClient tcpConnection, X509Certificate2 certificate, RemoteCertificateValidationCallback? userCertificateValidationCallback = null)
             : this(tcpConnection, userCertificateValidationCallback)
         {
-            _isServer = true;
-            _pfxFile = pfxFile;
+            _serverCertificate  = certificate;
         }
 
         /// <summary>
@@ -57,11 +55,10 @@ namespace Rtsp
         {
             var sslStream = new SslStream(base.GetStream(), leaveInnerStreamOpen: true, _userCertificateValidationCallback);
 
-            // Use presence of PFX file to select if this is the SSL/TLS Server or the SSL/TLS Client
-            if (_isServer)
+            // Use presence of server certificate to select if this is the SSL/TLS Server or the SSL/TLS Client
+            if (_serverCertificate is not null)
             {
-                var certificate = new X509Certificate2(_pfxFile);
-                sslStream.AuthenticateAsServer(certificate, false, SslProtocols.Tls12, false);
+                sslStream.AuthenticateAsServer(_serverCertificate, false, SslProtocols.Tls12, false);
             }
             else
             {
