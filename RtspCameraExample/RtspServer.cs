@@ -811,6 +811,7 @@ namespace RtspCameraExample
             connection.video.rtpChannel?.Dispose();
             connection.video.rtpChannel = null;
             connection.audio.rtpChannel?.Dispose();
+            connection.audio.rtpChannel = null;
             connection.Listener.Dispose();
             lock (rtspConnectionList)
             {

@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Rtsp
@@ -11,6 +12,8 @@ namespace Rtsp
     {
         protected readonly UdpClient dataSocket;
         protected readonly UdpClient controlSocket;
+
+        private readonly CancellationTokenSource _cancellationTokenSource = new();
 
         private Task? _dataReadTask;
         private Task? _controlReadTask;
@@ -65,7 +68,7 @@ namespace Rtsp
 
             if (dataSocket == null || controlSocket == null)
             {
-                throw new InvalidOperationException("UDP Forwader host was not initialized, can't continue");
+                throw new InvalidOperationException("UDP socket was not initialized (can't find free UDP port), can't continue");
             }
         }
 
@@ -86,9 +89,11 @@ namespace Rtsp
             }
 
             _dataReadTask = Task.Factory.StartNew(async () =>
-                await DoWorkerJobAsync(dataSocket, OnDataReceived, DataPort).ConfigureAwait(false), TaskCreationOptions.LongRunning);
+                await DoWorkerJobAsync(dataSocket, OnDataReceived, DataPort, _cancellationTokenSource.Token).ConfigureAwait(false),
+                TaskCreationOptions.LongRunning);
             _controlReadTask = Task.Factory.StartNew(async () =>
-                await DoWorkerJobAsync(controlSocket, OnControlReceived, ControlPort).ConfigureAwait(false), TaskCreationOptions.LongRunning);
+                await DoWorkerJobAsync(controlSocket, OnControlReceived, ControlPort, _cancellationTokenSource.Token).ConfigureAwait(false),
+                TaskCreationOptions.LongRunning);
         }
 
         /// <summary>
@@ -96,6 +101,7 @@ namespace Rtsp
         /// </summary>
         public virtual void Stop()
         {
+            _cancellationTokenSource.Cancel();
             dataSocket.Close();
             controlSocket.Close();
         }
@@ -129,17 +135,17 @@ namespace Rtsp
         /// <summary>
         /// Does the video job.
         /// </summary>
-        private static async Task DoWorkerJobAsync(UdpClient client, Action<RtspDataEventArgs> handler, int port)
+        private static async Task DoWorkerJobAsync(UdpClient client, Action<RtspDataEventArgs> handler, int port, CancellationToken cancellation)
         {
             try
             {
                 // to be compatible with netstandard2.0 we can't use the memory directly for the receive call 
                 byte[] buffer = new byte[65536];
-                // loop until we get an exception eg the socket closed
-                while (true)
+                // loop until we get an exception eg the socket closed or the cancellation token is set
+                while (!cancellation.IsCancellationRequested)
                 {
 #if NET7_0_OR_GREATER
-                    var size = await client.Client.ReceiveAsync(buffer).ConfigureAwait(false);
+                    var size = await client.Client.ReceiveAsync(buffer, cancellation).ConfigureAwait(false);
 #else
                     // Task to prevent warning and keep the same code than .NET 8
                     var size = await Task.FromResult(client.Client.Receive(buffer)).ConfigureAwait(false);
@@ -152,6 +158,9 @@ namespace Rtsp
                         Channel = port,
                     }));
                 }
+            }
+            catch(OperationCanceledException)
+            {
             }
             catch (ObjectDisposedException)
             {
@@ -183,11 +192,13 @@ namespace Rtsp
 
         public void WriteToControlPort(ReadOnlySpan<byte> data) => controlSocket.Send(data, _controlEndPoint);
 
-        public Task WriteToControlPortAsync(ReadOnlyMemory<byte> data) => controlSocket.SendAsync(data, _controlEndPoint).AsTask();
+        public Task WriteToControlPortAsync(ReadOnlyMemory<byte> data)
+            => controlSocket.SendAsync(data, _controlEndPoint, _cancellationTokenSource.Token).AsTask();
 
         public void WriteToDataPort(ReadOnlySpan<byte> data) => dataSocket.Send(data, _dataEndPoint);
 
-        public Task WriteToDataPortAsync(ReadOnlyMemory<byte> data) => dataSocket.SendAsync(data, _dataEndPoint).AsTask();
+        public Task WriteToDataPortAsync(ReadOnlyMemory<byte> data)
+            => dataSocket.SendAsync(data, _dataEndPoint, _cancellationTokenSource.Token).AsTask();
 
         protected virtual void Dispose(bool disposing)
         {
