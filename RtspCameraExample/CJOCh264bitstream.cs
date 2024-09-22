@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Numerics;
 
 namespace RtspCameraExample
 {
@@ -63,6 +65,7 @@ namespace RtspCameraExample
         /// <param name="nVal">nVal bit to add at the end of h264 bitstream</param>
         private void AddBitToStream(int nVal)
         {
+            // Make room in buffer is needed
             if (nLastBitInBuffer >= BUFFER_SIZE_BITS)
             {
                 //Must be aligned, no need to do dobytealign();
@@ -93,10 +96,6 @@ namespace RtspCameraExample
             nLastBitInBuffer++;
         }
 
-        //! 
-        /*!
-             \param 
-         */
         /// <summary>
         /// Adds 8 bit to the end of h264 bitstream (it is optimized for byte aligned situations)
         /// </summary>
@@ -104,23 +103,15 @@ namespace RtspCameraExample
         /// <exception cref="InvalidOperationException">If add when not aligned</exception>
         private void AddByteToStream(int nVal)
         {
+            Debug.Assert(nLastBitInBuffer % 8 == 0, "Error: AddByteToStream must be byte aligned");
+            // Make room in buffer is needed
             if (nLastBitInBuffer >= BUFFER_SIZE_BITS)
             {
                 //Must be aligned, no need to do dobytealign();
                 SaveBufferByte();
             }
 
-            //Used circular buffer of BUFFER_SIZE_BYTES
-            int nBytePos = (nLastBitInBuffer / 8);
-            //The first bit to add is on the left
-            int nBitPosInByte = 7 - (nLastBitInBuffer % 8);
-
-            //Check if it is byte aligned
-            if (nBitPosInByte != 7)
-            {
-                throw new InvalidOperationException("Error: inserting not aligment byte");
-            }
-
+            int nBytePos = nLastBitInBuffer / 8;
             //Add all byte to buffer
             SetBufferAt(nBytePos, (byte)nVal);
 
@@ -138,7 +129,7 @@ namespace RtspCameraExample
                 throw new Exception("Error: Save to file must be byte aligned");
             }
 
-            if ((nLastBitInBuffer / 8) <= 0)
+            if (nLastBitInBuffer == 0)
             {
                 throw new Exception("Error: NO bytes to save");
             }
@@ -237,12 +228,9 @@ namespace RtspCameraExample
                 throw new ArgumentOutOfRangeException(nameof(nNumbits), "Error: numbits must be between 1 and 64");
             }
 
-            int n = nNumbits - 1;
-            while (n >= 0)
+            for (int n = nNumbits - 1; n >= 0; n--)
             {
                 int nBit = GetBitNum(lval, n);
-                n--;
-
                 AddBitToStream(nBit);
             }
         }
@@ -255,9 +243,8 @@ namespace RtspCameraExample
         {
             ObjectDisposedException.ThrowIf(disposedValue, GetType());
 
-            //it implements unsigned exp golomb coding
             uint lvalint = lval + 1;
-            int nnumbits = (int)(Math.Log(lvalint, 2) + 1);
+            int nnumbits = BitOperations.Log2(lvalint) + 1;
 
             for (int n = 0; n < (nnumbits - 1); n++)
             {
