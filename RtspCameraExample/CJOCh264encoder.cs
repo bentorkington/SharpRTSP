@@ -31,7 +31,6 @@ namespace RtspCameraExample
 
         private class Frame
         {
-            public SampleFormat sampleformat; //!< Sample format
             public int nYwidth; //!< Y (luminance) block width in pixels
             public int nYheight; //!< Y (luminance) block height in pixels
             public int nCwidth; //!< C (Crominance) block width in pixels
@@ -277,7 +276,6 @@ namespace RtspCameraExample
             }
 
             //Ini vars
-            frame.sampleformat = sampleFormat;
             frame.nYwidth = nImW;
             frame.nYheight = nImH;
             if (sampleFormat == SampleFormat.SAMPLE_FORMAT_YUV420p)
@@ -303,12 +301,12 @@ namespace RtspCameraExample
 
             //Create h264 SPS & PPS
             CreateSps(frame.nYwidth, frame.nYheight, frame.nYmbwidth, frame.nYmbheight);
-            stream.Flush(); // Flush data to the List<byte>
+            stream.Flush();
             sps = baseStream.ToArray();
             baseStream.SetLength(0);
 
             CreatePPS();
-            stream.Flush(); // Flush data to the List<byte>
+            stream.Flush();
             pps = baseStream.ToArray();
             baseStream.SetLength(0);
         }

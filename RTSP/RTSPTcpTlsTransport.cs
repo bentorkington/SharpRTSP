@@ -44,7 +44,7 @@ namespace Rtsp
         public RtspTcpTlsTransport(TcpClient tcpConnection, X509Certificate2 certificate, RemoteCertificateValidationCallback? userCertificateValidationCallback = null)
             : this(tcpConnection, userCertificateValidationCallback)
         {
-            _serverCertificate  = certificate;
+            _serverCertificate = certificate;
         }
 
         /// <summary>
