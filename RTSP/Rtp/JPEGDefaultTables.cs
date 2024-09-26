@@ -5,7 +5,6 @@
     /// </summary>
     public static class JPEGDefaultTables
     {
-
         public static readonly byte[] DefaultQuantizers = [
 #pragma warning disable format
             16, 11, 12, 14, 12, 10, 16, 14,
@@ -98,6 +97,4 @@
     }
 
     public record struct HuffmanTable(byte[] Codelens, byte[] Symbols, byte Number, byte Class);
-
-
 }

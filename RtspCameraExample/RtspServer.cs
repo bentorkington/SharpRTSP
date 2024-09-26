@@ -615,8 +615,6 @@ namespace RtspCameraExample
                 // There could be more than 1 RTP packet (if the data is fragmented)
                 foreach (var rtp_packet in rtp_packets)
                 {
-
-
                     Debug.Assert(connection.video.rtpChannel != null, "If connection.video.rptChannel is null here the program did not handle well connection problem");
                     try
                     {
@@ -638,7 +636,6 @@ namespace RtspCameraExample
             }).ToArray();
 
             Task.WaitAll(tasks);
-
 
             foreach (var owner in memoryOwners)
             {
