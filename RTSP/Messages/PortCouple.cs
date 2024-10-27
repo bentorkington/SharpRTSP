@@ -1,100 +1,99 @@
-﻿namespace Rtsp.Messages
+﻿namespace Rtsp.Messages;
+
+using System;
+using System.Diagnostics.Contracts;
+using System.Globalization;
+
+/// <summary>
+/// Describe a couple of port used to transfer video and command.
+/// </summary>
+public class PortCouple
 {
-    using System;
-    using System.Diagnostics.Contracts;
-    using System.Globalization;
+    /// <summary>
+    /// Gets or sets the first port number.
+    /// </summary>
+    /// <value>The first port.</value>
+    public int First { get; set; }
+    /// <summary>
+    /// Gets or sets the second port number.
+    /// </summary>
+    /// <remarks>If not present the value is 0</remarks>
+    /// <value>The second port.</value>
+    public int Second { get; set; }
 
     /// <summary>
-    /// Describe a couple of port used to transfer video and command.
+    /// Initializes a new instance of the <see cref="PortCouple"/> class.
     /// </summary>
-    public class PortCouple
+    public PortCouple()
+    { }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PortCouple"/> class.
+    /// </summary>
+    /// <param name="first">The first port.</param>
+    public PortCouple(int first)
     {
-        /// <summary>
-        /// Gets or sets the first port number.
-        /// </summary>
-        /// <value>The first port.</value>
-        public int First { get; set; }
-        /// <summary>
-        /// Gets or sets the second port number.
-        /// </summary>
-        /// <remarks>If not present the value is 0</remarks>
-        /// <value>The second port.</value>
-        public int Second { get; set; }
+        First = first;
+        Second = 0;
+    }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PortCouple"/> class.
+    /// </summary>
+    /// <param name="first">The first port.</param>
+    /// <param name="second">The second port.</param>
+    public PortCouple(int first, int second)
+    {
+        First = first;
+        Second = second;
+    }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PortCouple"/> class.
-        /// </summary>
-        public PortCouple()
-        { }
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PortCouple"/> class.
-        /// </summary>
-        /// <param name="first">The first port.</param>
-        public PortCouple(int first)
+    /// <summary>
+    /// Gets a value indicating whether this instance has second port.
+    /// </summary>
+    /// <value>
+    /// 	<see langword="keyword" >true</see> if this instance has second port; otherwise, <see langword="keyword" >false</see>.
+    /// </value>
+    public bool IsSecondPortPresent => Second != 0;
+
+    /// <summary>
+    /// Parses the int values of port.
+    /// </summary>
+    /// <param name="stringValue">A string value.</param>
+    /// <returns>The port couple</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="stringValue"/> is <see langword="keyword" >null</see>.</exception>
+    public static PortCouple Parse(string stringValue)
+    {
+        if (stringValue == null)
+            throw new ArgumentNullException(nameof(stringValue));
+        Contract.Requires(!string.IsNullOrEmpty(stringValue));
+
+        var values = stringValue.Split('-');
+
+        _ = int.TryParse(values[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int tempValue);
+        PortCouple result = new(tempValue);
+
+        tempValue = 0;
+        if (values.Length > 1)
         {
-            First = first;
-            Second = 0;
-        }
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PortCouple"/> class.
-        /// </summary>
-        /// <param name="first">The first port.</param>
-        /// <param name="second">The second port.</param>
-        public PortCouple(int first, int second)
-        {
-            First = first;
-            Second = second;
-        }
+            _ = int.TryParse(values[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out tempValue);
 
-        /// <summary>
-        /// Gets a value indicating whether this instance has second port.
-        /// </summary>
-        /// <value>
-        /// 	<see langword="keyword" >true</see> if this instance has second port; otherwise, <see langword="keyword" >false</see>.
-        /// </value>
-        public bool IsSecondPortPresent => Second != 0;
-
-        /// <summary>
-        /// Parses the int values of port.
-        /// </summary>
-        /// <param name="stringValue">A string value.</param>
-        /// <returns>The port couple</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="stringValue"/> is <see langword="keyword" >null</see>.</exception>
-        public static PortCouple Parse(string stringValue)
-        {
-            if (stringValue == null)
-                throw new ArgumentNullException(nameof(stringValue));
-            Contract.Requires(!string.IsNullOrEmpty(stringValue));
-
-            string[] values = stringValue.Split('-');
-
-            _ = int.TryParse(values[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int tempValue);
-            PortCouple result = new(tempValue);
-
-            tempValue = 0;
-            if (values.Length > 1)
-            {
-                _ = int.TryParse(values[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out tempValue);
-
-                // this check is needed because some Hanwha's nvr returns a 1-1 as interleaved string, resulting in a 1-1 port couple
-                // will setup ports as 1-0
-                if (tempValue == result.First) { tempValue = 0; }
-            }
-
-            result.Second = tempValue;
-
-            return result;
+            // this check is needed because some Hanwha's nvr returns a 1-1 as interleaved string, resulting in a 1-1 port couple
+            // will set up ports as 1-0
+            if (tempValue == result.First) { tempValue = 0; }
         }
 
-        /// <summary>
-        /// Returns a <see cref="string"/> that represents this instance.
-        /// </summary>
-        /// <returns>
-        /// A <see cref="string"/> that represents this instance.
-        /// </returns>
-        public override string ToString()
-        {
-            return IsSecondPortPresent ? FormattableString.Invariant($"{First}-{Second}") : First.ToString(CultureInfo.InvariantCulture);
-        }
+        result.Second = tempValue;
+
+        return result;
+    }
+
+    /// <summary>
+    /// Returns a <see cref="string"/> that represents this instance.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="string"/> that represents this instance.
+    /// </returns>
+    public override string ToString()
+    {
+        return IsSecondPortPresent ? FormattableString.Invariant($"{First}-{Second}") : First.ToString(CultureInfo.InvariantCulture);
     }
 }

@@ -1,88 +1,79 @@
-﻿using System;
+﻿namespace Rtsp.Messages;
+
+using System;
 using System.Buffers;
 using System.Text;
 
-namespace Rtsp.Messages
+/// <summary>
+/// Message which represent data. ($ limited message)
+/// </summary>
+public sealed class RtspData : RtspChunk, IDisposable
 {
-    /// <summary>
-    /// Message wich represent data. ($ limited message)
-    /// </summary>
-    public sealed class RtspData : RtspChunk, IDisposable
+    private IMemoryOwner<byte>? _reservedData;
+    private bool _disposedValue;
+
+    public RtspData() { }
+
+    public RtspData(IMemoryOwner<byte> reservedData, int size)
     {
-        private IMemoryOwner<byte>? reservedData;
-        private bool disposedValue;
+        _reservedData = reservedData;
+        base.Data = reservedData.Memory[..size];
+    }
 
-        public RtspData() { }
-
-        public RtspData(IMemoryOwner<byte> reservedData, int size)
+    public override Memory<byte> Data
+    {
+        get => base.Data;
+        set
         {
-            this.reservedData = reservedData;
-            base.Data = reservedData.Memory[..size];
-        }
-
-        public override Memory<byte> Data
-        {
-            get
+            if (_reservedData != null)
             {
-                return base.Data;
+                _reservedData.Dispose();
+                _reservedData = null;
             }
-            set
-            {
-                if (reservedData != null)
-                {
-                    reservedData.Dispose();
-                    reservedData = null;
-                }
-                base.Data = value;
-            }
+            base.Data = value;
         }
+    }
 
-        /// <summary>
-        /// Create a string of the message for debug.
-        /// </summary>
-        public override string ToString()
+    /// <summary>
+    /// Create a string of the message for debug.
+    /// </summary>
+    public override string ToString()
+    {
+        var stringBuilder = new StringBuilder();
+        stringBuilder.AppendLine("Data message");
+        stringBuilder.AppendLine(Data.IsEmpty ? "Data : null" : $"Data length :-{Data.Length}-");
+
+        return stringBuilder.ToString();
+    }
+
+    public int Channel { get; set; }
+
+    /// <summary>
+    /// Clones this instance.
+    /// <remarks>Listener is not cloned</remarks>
+    /// </summary>
+    /// <returns>a clone of this instance</returns>
+    public override object Clone() => new RtspData
+    {
+        Channel = Channel,
+        SourcePort = SourcePort,
+        Data = Data,
+    };
+
+    private void Dispose(bool disposing)
+    {
+        if (_disposedValue) return;
+        if (disposing)
         {
-            var stringBuilder = new StringBuilder();
-            stringBuilder.AppendLine("Data message");
-            if (Data.IsEmpty)
-                stringBuilder.AppendLine("Data : null");
-            else
-                stringBuilder.AppendLine($"Data length :-{Data.Length}-");
-
-            return stringBuilder.ToString();
+            _reservedData?.Dispose();
         }
+        Data = Memory<byte>.Empty;
+        _disposedValue = true;
+    }
 
-        public int Channel { get; set; }
-
-        /// <summary>
-        /// Clones this instance.
-        /// <remarks>Listner is not cloned</remarks>
-        /// </summary>
-        /// <returns>a clone of this instance</returns>
-        public override object Clone() => new RtspData
-        {
-            Channel = Channel,
-            SourcePort = SourcePort,
-            Data = Data,
-        };
-
-        private void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    reservedData?.Dispose();
-                }
-                Data = Memory<byte>.Empty;
-                disposedValue = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }
