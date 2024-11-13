@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -51,11 +52,25 @@ namespace Rtsp
             _stream = connection.GetStream();
         }
 
+        [Obsolete("Get the address from the RemoteEndPoint instead.")]
         /// <summary>
         /// Gets the remote address.
         /// </summary>
-        /// <value>The remote adress.</value>
-        public string RemoteAdress => _transport.RemoteAddress;
+        /// <value>The remote address.</value>
+        /// <remarks>In addition to being misspelled, this property actually returns an IP:port pair.</remarks>
+        public string RemoteAdress => RemoteEndPoint.Address.ToString();
+
+        /// <summary>
+        /// Gets the remote endpoint.
+        /// </summary>
+        /// <value>The remote endpoint.</value>
+        public IPEndPoint RemoteEndPoint => _transport.RemoteEndPoint;
+
+        /// <summary>
+        /// Gets the local enpoint.
+        /// </summary>
+        /// <value>The local endpoint.</value>
+        public IPEndPoint LocalEndPoint => _transport.LocalEndPoint;
 
         /// <summary>
         /// Starts this instance.
@@ -141,7 +156,7 @@ namespace Rtsp
                     {
                         // on logue le tout
                         if (currentMessage.SourcePort != null)
-                            _logger.LogDebug("Receive from {remoteAdress}", currentMessage.SourcePort.RemoteAdress);
+                            _logger.LogDebug("Receive from {remoteAdress}", currentMessage.SourcePort.RemoteEndPoint);
                         _logger.LogDebug("{message}", currentMessage);
                     }
                     switch (currentMessage)

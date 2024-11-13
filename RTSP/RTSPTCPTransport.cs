@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
@@ -13,6 +13,7 @@ namespace Rtsp
     public class RtspTcpTransport : IRtspTransport, IDisposable
     {
         private readonly IPEndPoint _currentEndPoint;
+        private readonly IPEndPoint _localEndPoint;
         private TcpClient _RtspServerClient;
         private uint _commandCounter;
 
@@ -26,7 +27,8 @@ namespace Rtsp
                 throw new ArgumentNullException(nameof(tcpConnection));
             Contract.EndContractBlock();
 
-            _currentEndPoint = tcpConnection.Client.RemoteEndPoint as IPEndPoint ?? throw new InvalidOperationException("The remote endpoint can not be get");
+            _currentEndPoint = tcpConnection.Client.RemoteEndPoint as IPEndPoint ?? throw new InvalidOperationException("The local endpoint can not be determined.");
+            _localEndPoint = tcpConnection.Client.LocalEndPoint as IPEndPoint ?? throw new InvalidOperationException("The remote endpoint can not be determined.");
             _RtspServerClient = tcpConnection;
         }
 
@@ -50,7 +52,20 @@ namespace Rtsp
         /// Gets the remote address.
         /// </summary>
         /// <value>The remote address.</value>
-        public string RemoteAddress => string.Format(CultureInfo.InvariantCulture, "{0}:{1}", _currentEndPoint.Address, _currentEndPoint.Port);
+        public string RemoteAddress => _currentEndPoint.ToString();
+
+        /// <summary>
+        /// Gets the remote endpoint.
+        /// </summary>
+        /// <value>The remote endpoint.</value>
+        public IPEndPoint RemoteEndPoint => _currentEndPoint;
+
+        /// <summary>
+        /// Gets the local endpoint.
+        /// </summary>
+        /// <value>The local endpoint.</value>
+        public IPEndPoint LocalEndPoint => _localEndPoint;
+
 
         public uint NextCommandIndex() => ++_commandCounter;
 
@@ -67,6 +82,7 @@ namespace Rtsp
         /// </summary>
         /// <value><see langword="true"/> if connected; otherwise, <see langword="false"/>.</value>
         public bool Connected => _RtspServerClient.Client != null && _RtspServerClient.Connected;
+
 
         /// <summary>
         /// Reconnect this instance.

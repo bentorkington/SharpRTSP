@@ -1,4 +1,7 @@
-﻿namespace Rtsp
+using System;
+using System.Net;
+
+namespace Rtsp
 {
     /// <summary>
     /// Interface for Transport of Rtsp (TCP, TCP+SSL,..)
@@ -11,11 +14,25 @@
         /// <returns>A stream</returns>
         System.IO.Stream GetStream();
 
+        [Obsolete("Get the address from the RemoteEndPoint instead.")]
         /// <summary>
         /// Gets the remote address.
         /// </summary>
         /// <value>The remote address.</value>
+        /// <remarks>This property actually returns an IP:Port pair or a URI, depending on the underlying transport.</remarks>
         string RemoteAddress { get; }
+
+        /// <summary>
+        /// Gets the remote endpoint.
+        /// </summary>
+        /// <value>The remote endpoint.</value>
+        IPEndPoint RemoteEndPoint { get; }
+
+        /// <summary>
+        /// Gets the remote endpoint.
+        /// </summary>
+        /// <value>The remote endpoint.</value>
+        IPEndPoint LocalEndPoint { get; }
 
         /// <summary>
         /// Get next command index. Increment at each call.

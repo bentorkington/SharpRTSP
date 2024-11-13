@@ -169,14 +169,27 @@ namespace Rtsp
         private uint _commandCounter;
         private bool disposedValue;
 
+        private IPEndPoint _localEndPoint;
+        private IPEndPoint _remoteEndPoint;
+
         public RtspHttpTransport(Uri uri, NetworkCredential credentials)
         {
             _credentials = credentials;
             _uri = uri;
             Reconnect();
+            if (_dataClient is null)
+            {
+                throw new InvalidOperationException("The HTTP client could not be opened.");
+            }
+            _localEndPoint = _dataClient.Client.LocalEndPoint as IPEndPoint ?? throw new InvalidOperationException("The local endpoint can not be determined.");
+            _remoteEndPoint = _dataClient.Client.RemoteEndPoint as IPEndPoint ?? throw new InvalidOperationException("The remote endpoint can not be determined.");
         }
 
         public string RemoteAddress => _uri.ToString();
+
+        public IPEndPoint LocalEndPoint => _localEndPoint;
+        public IPEndPoint RemoteEndPoint => _remoteEndPoint;
+
         public bool Connected => _dataClient?.Connected == true;
 
         public uint NextCommandIndex() => ++_commandCounter;
