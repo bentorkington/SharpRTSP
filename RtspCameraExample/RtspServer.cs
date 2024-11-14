@@ -257,7 +257,7 @@ namespace RtspCameraExample
             // Update the RTSP Keepalive Timeout
             lock (rtspConnectionList)
             {
-                foreach (var oneConnection in rtspConnectionList.Where(connection => connection.Listener.RemoteAdress == listener.RemoteAdress))
+                foreach (var oneConnection in rtspConnectionList.Where(connection => connection.Listener.RemoteEndPoint.Equals(listener.RemoteEndPoint)))
                 {
                     // found the connection
                     oneConnection.UpdateKeepAlive();
@@ -367,8 +367,8 @@ namespace RtspCameraExample
                 // RTP over UDP mode
                 // Create a pair of UDP sockets - One is for the Data (eg Video/Audio), one is for the RTCP
                 var udp_pair = new UDPSocket(50000, 51000); // give a range of 500 pairs (1000 addresses) to try incase some address are in use
-                udp_pair.SetDataDestination(listener.RemoteAdress.Split(":")[0], transport.ClientPort.First);
-                udp_pair.SetControlDestination(listener.RemoteAdress.Split(":")[0], transport.ClientPort.Second);
+                udp_pair.SetDataDestination(listener.RemoteEndPoint.Address.ToString(), transport.ClientPort.First);
+                udp_pair.SetControlDestination(listener.RemoteEndPoint.Address.ToString(), transport.ClientPort.Second);
                 udp_pair.ControlReceived += (local_sender, local_e) =>
                 {
                     // RTCP data received
@@ -415,7 +415,7 @@ namespace RtspCameraExample
                 string copy_of_session_id = "";
                 lock (rtspConnectionList)
                 {
-                    foreach (var setupConnection in rtspConnectionList.Where(connection => connection.Listener.RemoteAdress == listener.RemoteAdress))
+                    foreach (var setupConnection in rtspConnectionList.Where(connection => connection.Listener.RemoteEndPoint.Equals(listener.RemoteEndPoint)))
                     {
                         // Check the Track ID to determine if this is a SETUP for the Video Stream
                         // or a SETUP for an Audio Stream.
@@ -626,7 +626,7 @@ namespace RtspCameraExample
                     catch (Exception e)
                     {
                         Console.WriteLine("UDP Write Exception " + e);
-                        Console.WriteLine("Error writing to listener " + connection.Listener.RemoteAdress);
+                        Console.WriteLine("Error writing to listener " + connection.Listener.RemoteEndPoint);
                         Console.WriteLine("Removing session " + connection.session_id + " due to write error");
                         RemoveSession(connection);
                         break; // exit out of foreach loop
@@ -663,7 +663,7 @@ namespace RtspCameraExample
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error writing RTCP to listener {remoteAdress}", connection.Listener.RemoteAdress);
+                _logger.LogError(e, "Error writing RTCP to listener {remoteAdress}", connection.Listener.RemoteEndPoint);
                 return false;
             }
             return true;
@@ -895,7 +895,7 @@ namespace RtspCameraExample
                     catch (Exception e)
                     {
                         _logger.LogWarning(e, "UDP Write Exception");
-                        _logger.LogWarning("Error writing to listener {address}", connection.Listener.RemoteAdress);
+                        _logger.LogWarning("Error writing to listener {address}", connection.Listener.RemoteEndPoint);
                         write_error = true;
                     }
                 }
