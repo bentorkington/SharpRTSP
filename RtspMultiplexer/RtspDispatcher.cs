@@ -120,7 +120,7 @@
             Contract.EndContractBlock();
 
             listener.MessageReceived += new EventHandler<RtspChunkEventArgs>(Listener_MessageReceived);
-            _serverListener.Add(listener.RemoteAdress, listener);
+            _serverListener.Add(listener.RemoteEndPoint.ToString(), listener);
 
         }
 
@@ -149,7 +149,7 @@
             {
                 destination = HandleRequest(ref message);
                 _logger.Debug("Dispatch message from {0} to {1}",
-                    message.SourcePort != null ? message.SourcePort.RemoteAdress : "UNKNOWN", destination != null ? destination.RemoteAdress : "UNKNOWN");
+                    message.SourcePort != null ? message.SourcePort.RemoteEndPoint : "UNKNOWN", destination != null ? destination.RemoteEndPoint : "UNKNOWN");
 
                 // HandleRequest can change message type.
                 if (message is RtspRequest)
@@ -173,7 +173,7 @@
                     {
                         destination = context.OriginSourcePort;
                         response.CSeq = context.OriginCSeq;
-                        _logger.Debug("Dispatch response back to {0}", destination.RemoteAdress);
+                        _logger.Debug("Dispatch response back to {0}", destination.RemoteEndPoint);
                     }
 
                 }
@@ -186,7 +186,7 @@
             {
 
                 destination.Stop();
-                _serverListener.Remove(destination.RemoteAdress);
+                _serverListener.Remove(destination.RemoteEndPoint.ToString());
 
                 // send back a message because we can't forward.
                 if (message is RtspRequest && message.SourcePort != null)
@@ -221,7 +221,7 @@
 
                 // un peu pourri mais pas d'autre idée...
                 // pour avoir vraiment des clef avec IP....
-                if (_serverListener.TryGetValue(destination.RemoteAdress, out RtspListener value))
+                if (_serverListener.TryGetValue(destination.RemoteEndPoint.ToString(), out RtspListener value))
                 {
                     destination = value;
                 }
@@ -300,7 +300,7 @@
                                 // _activesSession[sessionKey].Start(request.SourcePort.RemoteAdress); 
                                 //   break;
                                 case RtspRequest.RequestType.TEARDOWN:
-                                    session.Stop(request.SourcePort.RemoteAdress);
+                                    session.Stop(request.SourcePort.RemoteEndPoint.ToString());
                                     if (!session.IsNeeded)
                                         _activesSession.Remove(sessionKey);
                                     else
@@ -521,7 +521,7 @@
             }
 
 
-            string setupKey = requestSetup.SourcePort.RemoteAdress + "SEQ" + requestSetup.CSeq.ToString(CultureInfo.InvariantCulture);
+            string setupKey = requestSetup.SourcePort.RemoteEndPoint.ToString() + "SEQ" + requestSetup.CSeq.ToString(CultureInfo.InvariantCulture);
 
             RtspTransport selectedTransport = SelectTransport(requestSetup);
 
@@ -554,13 +554,13 @@
                 }
                 else
                 {
-                    forwarder.ForwardHostVideo = requestSetup.SourcePort.RemoteAdress.Split(':')[0];
+                    forwarder.ForwardHostVideo = requestSetup.SourcePort.RemoteEndPoint.Address.ToString();
                     _logger.Debug("Destination get from TCP port {0}", forwarder.ForwardHostVideo);
                 }
             }
 
             // Configured the transport asked.
-            forwarder.ForwardHostCommand = destination.RemoteAdress.Split(':')[0];
+            forwarder.ForwardHostCommand = destination.RemoteEndPoint.Address.ToString();
             RtspTransport firstNewTransport = new()
             {
                 IsMulticast = false,
@@ -601,14 +601,14 @@
                 // si on est dèjà en play on n'envoie pas la commande a la source.
                 if (session.State == RtspSession.SessionState.Playing)
                 {
-                    session.Start(requestPlay.SourcePort.RemoteAdress);
+                    session.Start(requestPlay.SourcePort.RemoteEndPoint.ToString());
                     RtspResponse returnValue = requestPlay.CreateResponse();
                     destination = requestPlay.SourcePort;
                     return returnValue;
                 }
 
                 // ajoute un client
-                session.Start(requestPlay.SourcePort.RemoteAdress);
+                session.Start(requestPlay.SourcePort.RemoteEndPoint.ToString());
             }
             return requestPlay;
 
@@ -741,7 +741,7 @@
         private void HandleResponseToSetup(RtspResponse message)
         {
             RtspRequest original = message.OriginalRequest;
-            string setupKey = original.SourcePort.RemoteAdress + "SEQ" + message.CSeq.ToString(CultureInfo.InvariantCulture);
+            string setupKey = original.SourcePort.RemoteEndPoint.ToString() + "SEQ" + message.CSeq.ToString(CultureInfo.InvariantCulture);
 
             if (message.IsOk)
             {
