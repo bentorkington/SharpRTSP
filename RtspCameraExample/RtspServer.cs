@@ -257,7 +257,7 @@ namespace RtspCameraExample
             // Update the RTSP Keepalive Timeout
             lock (rtspConnectionList)
             {
-                foreach (var oneConnection in rtspConnectionList.Where(connection => connection.Listener.RemoteEndPoint.Equals(listener.RemoteEndPoint)))
+                foreach (var oneConnection in rtspConnectionList.Where(connection => connection.Listener == listener))
                 {
                     // found the connection
                     oneConnection.UpdateKeepAlive();
